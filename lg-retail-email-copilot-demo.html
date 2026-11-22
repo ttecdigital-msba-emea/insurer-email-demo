@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legal &amp; General Retail – Intent-led email service demo (Dynamics 365 Customer Service + Copilot)</title>
+<style>
+:root{
+  --nav:#002050; --brand:#0f6cbd; --brand-l:#ebf3fc;
+  --bg:#f5f5f5; --card:#fff; --line:#e0e0e0; --line2:#edebe9; --txt:#242424; --muted:#616161; --muted2:#8a8886;
+  --ok:#107c10; --okbg:#dff6dd; --warn:#8a3707; --warnbg:#fff4ce; --bad:#c50f1f; --badbg:#fde7e9;
+  --pp:#5b2bb5; --ppl:#f3ecff; --hot:#ff8c00;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,"Helvetica Neue",sans-serif;font-size:14px;color:var(--txt);background:var(--bg)}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+svg{flex:none}
+.hidden{display:none !important}
+a{color:var(--brand);text-decoration:none}
+
+#topbar{height:48px;background:var(--nav);color:#fff;display:flex;align-items:center;padding:0 8px 0 0}
+.waffle{width:48px;height:48px;display:flex;align-items:center;justify-content:center}
+.appname{font-weight:600;font-size:15px;padding:0 12px;border-inline-end:1px solid rgba(255,255,255,.25);white-space:nowrap}
+.appsub{font-size:15px;padding:0 12px;white-space:nowrap}
+.envtag{font-size:11px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:10px;margin-inline-start:4px}
+.search{flex:1;display:flex;justify-content:center}
+.search div{width:min(420px,90%);height:32px;background:rgba(255,255,255,.12);border-radius:4px;display:flex;align-items:center;gap:8px;padding:0 10px;color:rgba(255,255,255,.8);font-size:13px}
+.ticons{display:flex;align-items:center;gap:2px}
+.ticon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.ticon.on{background:rgba(255,255,255,.14)}
+.presence{width:32px;height:32px;border-radius:50%;background:#038387;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;position:relative;margin-inline-start:6px}
+.presence::after{content:"";position:absolute;width:10px;height:10px;border-radius:50%;background:#6bb700;border:2px solid var(--nav);bottom:-1px;inset-inline-end:-1px}
+
+#shell{display:flex;height:calc(100% - 48px - 64px)}
+#sessions{width:216px;background:#fff;border-inline-end:1px solid var(--line);display:flex;flex-direction:column;padding:6px 0}
+.sess{display:flex;align-items:center;gap:10px;margin:2px 6px;padding:8px 10px;border-radius:4px;position:relative}
+.sess.active{background:var(--brand-l)}
+.sess.active::before{content:"";position:absolute;inset-inline-start:0;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--brand)}
+.sess .nm{font-weight:600;font-size:13px}
+.sess .sub{font-size:12px;color:var(--muted)}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;flex:none;position:relative}
+.av.sm{width:24px;height:24px;font-size:10px}
+.av .ch{position:absolute;bottom:-3px;inset-inline-end:-3px;width:16px;height:16px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px var(--line)}
+.sesslabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 16px 4px}
+#sitemap{width:48px;background:#fafafa;border-inline-end:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding-top:6px;gap:2px}
+.smi{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:4px;color:var(--muted)}
+.smi.on{background:#e6e6e6;color:var(--brand)}
+
+#workarea{flex:1;display:flex;min-width:0}
+#center{flex:1;display:flex;flex-direction:column;min-width:0}
+#apptabs{height:40px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:flex-end;padding:0 8px;gap:2px;overflow:hidden}
+.atab{display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.atab.on{color:var(--txt);font-weight:600;border-bottom-color:var(--brand)}
+.atab .x{color:var(--muted2);font-size:11px;margin-inline-start:4px}
+#views{flex:1;overflow:auto;position:relative}
+.view{padding:0 0 24px}
+
+.cmdbar{height:44px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 12px;gap:2px;position:sticky;top:0;z-index:3}
+.cmd{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:4px;font-size:13px;color:var(--txt);background:none;border:0;white-space:nowrap}
+button.cmd:hover{background:#f3f2f1}
+.cmd.cp{color:var(--pp)}
+.sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+
+.fhead{background:#fff;padding:14px 20px 0;border-bottom:1px solid var(--line)}
+.fhead .row{display:flex;align-items:center;gap:14px}
+.ftitle{font-size:20px;font-weight:600}
+.fsub{font-size:12px;color:var(--muted)}
+.hfields{margin-inline-start:auto;display:flex;gap:24px}
+.hf .l{font-size:12px;color:var(--muted)}
+.hf .v{font-size:13px;font-weight:600}
+.ftabs{display:flex;gap:4px;margin-top:10px}
+.ftab{padding:8px 10px;font-size:13px;color:var(--muted);border-bottom:2px solid transparent}
+.ftab.on{color:var(--txt);font-weight:600;border-bottom-color:var(--brand)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px}
+.cols.c3{grid-template-columns:1.15fr 1fr}
+.card{background:var(--card);border-radius:6px;box-shadow:0 0 2px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.14);padding:14px 16px}
+.card h3{margin:0 0 10px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card h3 .r{margin-inline-start:auto;font-weight:400;font-size:12px;color:var(--brand)}
+.field{display:grid;grid-template-columns:150px 1fr;align-items:start;padding:7px 0;border-bottom:1px solid var(--line2);font-size:13px;gap:8px}
+.field:last-child{border-bottom:0}
+.field .l{color:var(--muted)}
+.field.flash .v{animation:fl 1.6s ease}
+@keyframes fl{0%{background:#e9ddff}100%{background:transparent}}
+.cpbadge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--pp);background:var(--ppl);border:1px solid #e1d3ff;border-radius:12px;padding:2px 9px;font-weight:400}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.pill.hi{background:var(--badbg);color:var(--bad)}
+.pill.md{background:var(--warnbg);color:var(--warn)}
+.pill.ok{background:var(--okbg);color:var(--ok)}
+.pill.bl{background:var(--brand-l);color:var(--brand)}
+.pill.pp{background:var(--ppl);color:var(--pp)}
+.pill.gr{background:#f0f0f0;color:var(--muted)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px 16px 0}
+.kpi .n{font-size:26px;font-weight:600;margin-top:4px}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .t{font-size:12px;margin-top:2px;color:var(--muted)}
+table.grid{width:100%;border-collapse:collapse;font-size:13px}
+table.grid th{text-align:start;font-weight:600;color:var(--muted);font-size:12px;padding:8px 6px;border-bottom:1px solid var(--line)}
+table.grid td{padding:9px 6px;border-bottom:1px solid var(--line2)}
+
+.tlbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tlbtn{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:4px;padding:5px 10px;font-size:13px}
+.tli{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13px}
+.tli .ic{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.tli .h{font-weight:600}
+.tli .m{color:var(--muted);font-size:12px}
+.tli .bd{margin-top:6px;background:#fafafa;border:1px solid var(--line2);border-radius:6px;padding:10px 12px;line-height:1.5}
+.tli .bd p{margin:0 0 8px}
+.att{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:4px;padding:4px 8px;font-size:12px;background:#fff;margin-top:4px}
+.tli.newin{animation:fl 1.8s ease}
+
+.efield{display:grid;grid-template-columns:90px 1fr;align-items:center;border-bottom:1px solid var(--line2);padding:8px 0;font-size:13px}
+.efield .l{color:var(--muted)}
+.chipp{display:inline-flex;align-items:center;gap:6px;background:#f0f0f0;border-radius:12px;padding:2px 10px 2px 2px;font-size:13px}
+.etool{display:flex;gap:4px;border:1px solid var(--line);border-bottom:0;padding:6px;border-radius:4px 4px 0 0;margin-top:12px;color:var(--muted);font-size:13px;align-items:center}
+.etool span{padding:2px 6px}
+.ebody{border:1px solid var(--line);min-height:260px;padding:14px;font-size:14px;line-height:1.55;border-radius:0 0 4px 4px}
+.ebody.empty{color:var(--muted2)}
+.ebody p{margin:0 0 10px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:4px;padding:6px 14px;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.acc{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.rej{color:var(--bad)}
+
+/* routing diagnostics */
+.diag{padding:12px 16px}
+.stage{display:grid;grid-template-columns:34px 1fr;gap:12px;position:relative;padding-bottom:14px}
+.stage::before{content:"";position:absolute;inset-inline-start:16px;top:34px;bottom:0;width:2px;background:#d7e7f8}
+.stage:last-child::before{display:none}
+.stage .dot{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.stage.ai .dot{background:linear-gradient(135deg,#7a3ff2,#0f6cbd)}
+.stage .card h3{margin-bottom:6px}
+.stage .kv{display:grid;grid-template-columns:200px 1fr;font-size:13px;gap:4px 10px}
+.stage .kv .k{color:var(--muted)}
+.conf{display:flex;align-items:center;gap:8px}
+.conf .b{width:110px;height:6px;border-radius:3px;background:#eee;overflow:hidden}
+.conf .b i{display:block;height:100%;background:linear-gradient(90deg,#7a3ff2,#0f6cbd)}
+.today{background:#fff8f0;border:1px dashed #f0b37a;border-radius:6px;padding:8px 10px;font-size:12px;color:var(--warn);margin-top:8px}
+
+/* insights */
+.ibanner{margin:12px 16px 0;background:var(--warnbg);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--warn)}
+.bars .r{display:grid;grid-template-columns:200px 1fr 54px;align-items:center;gap:10px;font-size:13px;padding:5px 0}
+.bars .t{height:14px;background:#f0f0f0;border-radius:3px;overflow:hidden}
+.bars .t i{display:block;height:100%;background:var(--brand);border-radius:3px}
+.bars .t i.p{background:linear-gradient(90deg,#7a3ff2,#0f6cbd)}
+.bars .t i.o{background:#ca5010}
+.bars .n{text-align:end;color:var(--muted);font-size:12px}
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px}
+.flow span{background:#f3f2f1;border-radius:4px;padding:4px 8px}
+.flow span.a{background:var(--ppl);color:var(--pp);font-weight:600}
+.flow b{color:var(--muted2)}
+
+/* copilot pane */
+#cp{width:384px;background:#fff;border-inline-start:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.cphead{display:flex;align-items:center;gap:8px;padding:12px 14px 8px}
+.cphead .t{font-weight:600;font-size:15px}
+.cphead .x{margin-inline-start:auto;color:var(--muted);display:flex;gap:10px}
+.cptabs{display:flex;gap:4px;padding:0 10px;border-bottom:1px solid var(--line)}
+.cptab{font-size:13px;padding:6px 8px;color:var(--muted);border-bottom:2px solid transparent}
+.cptab.on{color:var(--txt);font-weight:600;border-bottom-color:#7a3ff2}
+#cpbody{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(180deg,#fbf9ff 0,#fff 220px)}
+.cpcard{background:#fff;border-radius:8px;border:1px solid #e6e0f3;box-shadow:0 1px 3px rgba(80,40,160,.08);padding:12px 14px;font-size:13px;line-height:1.5}
+.cpcard .ch{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:6px}
+.cpcard .ch .tm{margin-inline-start:auto;font-weight:400;font-size:11px;color:var(--muted2)}
+.cpcard ul,.cpcard ol{margin:4px 0 6px;padding-inline-start:18px}
+.cpcard li{margin:2px 0}
+.cpcard p{margin:4px 0}
+.cpcard .k{color:var(--muted);font-size:12px}
+.cpcard .blk{opacity:0;transform:translateY(4px);transition:opacity .35s,transform .35s}
+.cpcard .blk.in{opacity:1;transform:none}
+.cpcard blockquote{margin:6px 0;border-inline-start:3px solid #c8b6f0;padding:2px 10px;color:#3b2280;background:#faf7ff}
+.cpfoot{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line2);font-size:11px;color:var(--muted2)}
+.cpfoot .ic{margin-inline-start:auto;color:var(--muted)}
+.cpacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cpbtn{border:1px solid #d6c8f5;background:#fff;color:var(--pp);border-radius:16px;padding:5px 12px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.cpbtn.pri{background:linear-gradient(90deg,#5b2bb5,#0f6cbd);color:#fff;border-color:transparent}
+.cite{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;font-size:10px;font-weight:600;border-radius:3px;background:#ebe3fb;color:var(--pp);margin:0 2px;vertical-align:1px}
+.srcs{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.src{font-size:12px;color:var(--brand)}
+.uq{align-self:flex-end;background:#ebe3fb;border-radius:8px 8px 2px 8px;padding:8px 11px;font-size:13px;max-width:86%}
+.thinking{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--pp)}
+.thinking .bar{width:110px;height:4px;border-radius:2px;background:linear-gradient(90deg,#e3d6ff,#7a3ff2,#e3d6ff);background-size:200% 100%;animation:shim 1s linear infinite}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:0 0}}
+.cpinput{border-top:1px solid var(--line);padding:10px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chip{border:1px solid #d6c8f5;background:#faf7ff;color:#3b2280;border-radius:14px;padding:5px 11px;font-size:12px;text-align:start}
+.cpbox{border:1px solid #c8b6f0;border-radius:8px;padding:9px 12px;font-size:13px;color:var(--muted2);display:flex;align-items:center;gap:8px}
+.cpbox .s{margin-inline-start:auto;color:#7a3ff2}
+.disclaim{font-size:11px;color:var(--muted2);margin-top:6px;text-align:center}
+.hello .h{font-size:18px;font-weight:600;background:linear-gradient(90deg,#5b2bb5,#0f6cbd);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+#toast{position:fixed;top:58px;inset-inline-end:400px;width:380px;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.28);z-index:40;overflow:hidden;animation:drop .35s ease}
+@keyframes drop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
+#toast .tb{background:var(--brand);color:#fff;padding:9px 14px;font-size:13px;display:flex;gap:8px;align-items:center}
+#toast .tb .tmr{margin-inline-start:auto;font-size:12px;opacity:.9}
+#toast .tc{padding:14px;display:flex;gap:12px}
+#toast .tc .k{font-size:12px;color:var(--muted)}
+#toast .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+#toast .q{font-size:13px;margin-top:8px;background:#f5f5f5;border-radius:6px;padding:8px}
+#toast .ta{display:flex;gap:8px;padding:0 14px 14px;justify-content:flex-end}
+#snack{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#323130;color:#fff;padding:10px 18px;border-radius:6px;font-size:13px;z-index:45;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+
+#guide{height:64px;background:#1b1a19;color:#fff;display:flex;align-items:center;gap:14px;padding:0 18px}
+#guide .stp{font-size:12px;color:#c8c6c4;white-space:nowrap}
+#guide .prog{width:130px;height:4px;background:#3b3a39;border-radius:2px;overflow:hidden;margin-top:4px}
+#guide .prog i{display:block;height:100%;background:linear-gradient(90deg,#8a4fff,#2b88d8);transition:width .4s}
+#guide .gt{flex:1;min-width:0}
+#guide .gt b{display:block;font-size:14px}
+#guide .gt span{font-size:12px;color:#d2d0ce;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gbtn{background:#3b3a39;color:#fff;border:0;border-radius:4px;padding:8px 12px;font-weight:600;font-size:13px;white-space:nowrap}
+.gbtn.pri{background:var(--brand)}
+.gbtn.on{background:#5b2bb5}
+.gbtn:disabled{opacity:.4;cursor:default}
+#notes{position:fixed;bottom:72px;inset-inline-start:12px;width:440px;background:#252423;color:#f3f2f1;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.5;z-index:70;box-shadow:0 10px 30px rgba(0,0,0,.35);border-top:3px solid #8a4fff}
+#notes .h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#c8b6f0;margin-bottom:4px}
+#ring{position:fixed;border:3px solid var(--hot);border-radius:8px;z-index:60;pointer-events:none;animation:pulse 1.4s ease-in-out infinite;transition:all .25s}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(255,140,0,.35)}50%{box-shadow:0 0 0 10px rgba(255,140,0,0)}}
+#callout{position:fixed;z-index:61;width:300px;background:#fff;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px 14px;font-size:13px;line-height:1.45;border-top:4px solid var(--hot);pointer-events:none}
+#callout b{display:block;margin-bottom:4px}
+#callout .hint{margin-top:6px;font-size:12px;color:#b35900;font-weight:600}
+
+.overlay{position:fixed;inset:0;background:rgba(0,16,48,.62);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+.ocard{background:#fff;border-radius:12px;max-width:760px;width:100%;padding:26px 32px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:94vh;overflow:auto}
+.ocard h1{margin:8px 0 6px;font-size:23px}
+.ocard p{color:var(--muted);line-height:1.55;margin:6px 0}
+.ocard .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0;font-size:13px}
+.ocard .meta div{background:#f7f5fc;border-radius:8px;padding:9px 11px}
+.ocard .meta b{display:block;font-size:12px;color:var(--pp);margin-bottom:2px}
+.ocard .meta .big{font-size:20px;font-weight:700;color:var(--txt)}
+.cmp{display:grid;grid-template-columns:90px 1fr;gap:8px 12px;align-items:center;margin:12px 0;font-size:12px}
+.cmp .lab{font-weight:700;font-size:12px}
+.cmp .lab.t{color:#b35900}.cmp .lab.f{color:var(--pp)}
+.ocard ol{padding-inline-start:20px;line-height:1.65;margin:8px 0;font-size:13.5px}
+.ocard .act{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;align-items:center}
+.ocard .note{font-size:11px;color:var(--muted2);margin-inline-end:auto;max-width:430px}
+.brandrow{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--pp)}
+.quote{background:var(--ppl);border-radius:8px;padding:10px 14px;color:#3b2280;font-weight:600;margin-top:12px}
+.lnk{color:var(--brand);cursor:pointer;text-decoration:none}
+.lnk:hover{text-decoration:underline}
+.atab{cursor:pointer}
+.atab:hover{background:#f5f5f5}
+.atab .x:hover{color:var(--bad)}
+.ftab[data-ctab],.ftab[data-rtab]{cursor:pointer}
+.ftab[data-ctab]:hover,.ftab[data-rtab]:hover{color:var(--txt)}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px}
+.rgrid .full{grid-column:1 / -1}
+.cpnote{display:flex;gap:8px;align-items:flex-start;background:var(--ppl);border:1px solid #e1d3ff;border-radius:6px;padding:8px 10px;font-size:12.5px;color:#3b2280;margin-top:8px;line-height:1.45}
+.meter{height:8px;border-radius:4px;background:#eee;overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;border-radius:4px}
+.article{font-size:14px;line-height:1.6;max-width:760px}
+.article h4{margin:14px 0 4px}
+.doc{background:#fff;max-width:640px;margin:0 auto;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.08);padding:26px 30px;font-size:13px}
+.doc .dh{display:flex;justify-content:space-between;border-bottom:3px solid #00205b;padding-bottom:10px;margin-bottom:14px}
+.explore{position:fixed;z-index:61;bottom:76px;left:50%;transform:translateX(-50%);background:#fff;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:10px 14px;font-size:13px;border-top:4px solid #8a4fff}
+#voiceSel{background:#3b3a39;color:#fff;border:0;border-radius:4px;padding:7px 6px;font-size:12px;max-width:190px}
+.gbtn.on{background:#5b2bb5}
+.nchk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--txt);cursor:pointer;margin-inline-end:6px}
+#edgeHint{font-size:12px;color:#0e4775;background:#f3f9fd;border:1px solid #cfe4fa;border-radius:6px;padding:6px 10px;margin-top:10px}
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="waffle"><svg width="18" height="18" viewBox="0 0 18 18" fill="#fff"><rect x="1" y="1" width="3" height="3"/><rect x="7.5" y="1" width="3" height="3"/><rect x="14" y="1" width="3" height="3"/><rect x="1" y="7.5" width="3" height="3"/><rect x="7.5" y="7.5" width="3" height="3"/><rect x="14" y="7.5" width="3" height="3"/><rect x="1" y="14" width="3" height="3"/><rect x="7.5" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg></div>
+  <div class="appname">Dynamics 365</div>
+  <div class="appsub">Customer Service workspace <span class="envtag">Legal &amp; General · Retail Service (demo)</span></div>
+  <div class="search"><div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>Search</div></div>
+  <div class="ticons">
+    <div class="ticon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg></div>
+    <div class="ticon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.4"><path d="M8 2a4 4 0 0 0-4 4v3l-1.5 2.5h11L12 9V6a4 4 0 0 0-4-4zM6.5 13.5a1.6 1.6 0 0 0 3 0"/></svg></div>
+    <div class="ticon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></div>
+    <div class="ticon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M6.2 6.2a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.6"/></svg></div>
+    <div class="ticon on"><span class="cplogo" data-size="20"></span></div>
+    <div class="presence">PS</div>
+  </div>
+</header>
+
+<div id="shell">
+  <nav id="sessions">
+    <div class="sess active" id="sessHome">
+      <div class="av" style="background:#0f6cbd"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.5"><path d="M2 7.5L8 2.5l6 5M3.5 6.5V14h9V6.5"/></svg></div>
+      <div><div class="nm">Home</div><div class="sub" id="homeSub">Agent dashboard</div></div>
+    </div>
+    <div class="sesslabel hidden" id="sessLabel">Sessions</div>
+    <div class="sess hidden" id="sessCase">
+      <div class="av" style="background:#8764b8">ME<span class="ch"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#0f6cbd" stroke-width="2"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><path d="M2 4l6 5 6-5"/></svg></span></div>
+      <div><div class="nm">Margaret Ellis</div><div class="sub" id="sessCaseSub">Email · Case</div></div>
+    </div>
+  </nav>
+  <nav id="sitemap">
+    <div class="smi"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg></div>
+    <div class="smi on"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/></svg></div>
+    <div class="smi"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="4" width="12" height="9" rx="1"/><path d="M6 4V2.5h4V4"/></svg></div>
+    <div class="smi"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.5 14c.8-3 3-4.3 5.5-4.3s4.7 1.3 5.5 4.3"/></svg></div>
+    <div class="smi"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2h7l3 3v9H3z"/><path d="M5.5 7h5M5.5 10h5"/></svg></div>
+    <div class="smi"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 13V7M6 13V3M10 13V9M14 13V5"/></svg></div>
+  </nav>
+
+  <div id="workarea">
+    <section id="center">
+      <div id="apptabs"></div>
+      <div id="views">
+
+        <!-- DASHBOARD -->
+        <div class="view" id="vDash">
+          <div class="cmdbar"><span class="cmd">Refresh all</span><span class="cmd">Set as default</span><span class="sep"></span><span class="cmd">Retail Service – Agent Dashboard &#9662;</span></div>
+          <div class="kpis">
+            <div class="card kpi"><div class="l">My open cases</div><div class="n">9</div><div class="t">2 awaiting customer</div></div>
+            <div class="card kpi"><div class="l">Email cases routed to me today</div><div class="n">14</div><div class="t">All arrived via intent-led routing</div></div>
+            <div class="card kpi"><div class="l">Avg. time to first touch</div><div class="n">41m</div><div class="t">Retirement Specialists queue</div></div>
+            <div class="card kpi"><div class="l">Transfers out (this week)</div><div class="n">1</div><div class="t">Reason captured: specialist approval</div></div>
+          </div>
+          <div class="cols c3">
+            <div class="card"><h3>My Active Cases <span class="r">See all</span></h3>
+              <table class="grid"><thead><tr><th>Case</th><th>Intent</th><th>Customer</th><th>Priority</th><th>Entered via</th></tr></thead><tbody>
+                <tr><td><a class="lnk" data-open="case:CAS-118164">CAS-118164</a></td><td>Retirement quote request</td><td><a class="lnk" data-open="contact:David Okafor">David Okafor</a></td><td><span class="pill md">Normal</span></td><td>pensions@</td></tr>
+                <tr><td><a class="lnk" data-open="case:CAS-118171">CAS-118171</a></td><td>Drawdown – change income</td><td><a class="lnk" data-open="contact:Susan Hartley">Susan Hartley</a></td><td><span class="pill md">Normal</span></td><td>retirement@</td></tr>
+                <tr><td><a class="lnk" data-open="case:CAS-118185">CAS-118185</a></td><td>Tax-free cash enquiry</td><td><a class="lnk" data-open="contact:Ian Whitfield">Ian Whitfield</a></td><td><span class="pill md">Normal</span></td><td>customerservice@</td></tr>
+                <tr><td><a class="lnk" data-open="case:CAS-118190">CAS-118190</a></td><td>Transfer-in documents</td><td><a class="lnk" data-open="contact:Aisha Rahman">Aisha Rahman</a></td><td><span class="pill ok">Low</span></td><td>pensions.admin@</td></tr>
+                <tr><td><a class="lnk" data-open="case:CAS-118197">CAS-118197</a></td><td>Retirement options (vulnerable)</td><td><a class="lnk" data-open="contact:Peter Lowe">Peter Lowe</a></td><td><span class="pill hi">High</span></td><td>lifeprotection@</td></tr>
+              </tbody></table>
+              <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Note the <b>“Entered via”</b> column: cases arrive from many addresses, but reach this team because of the customer’s <b>intent</b>.</p>
+            </div>
+            <div class="card"><h3>Queues I work <span class="r">Open work items &#9662;</span></h3>
+              <table class="grid"><thead><tr><th>Queue</th><th>Waiting</th><th>Oldest</th></tr></thead><tbody>
+                <tr><td><a class="lnk" data-open="queue:Retirement Specialists – Priority Care">Retirement Specialists – Priority Care</a></td><td>3</td><td>18m</td></tr>
+                <tr><td><a class="lnk" data-open="queue:Retirement Specialists – General">Retirement Specialists – General</a></td><td>11</td><td>2h 05m</td></tr>
+                <tr><td><a class="lnk" data-open="queue:Retail Triage – Human validation">Retail Triage – Human validation</a></td><td>4</td><td>26m</td></tr>
+              </tbody></table>
+              <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Presence: <b style="color:var(--ok)">Available</b> · Skills: Retirement income, Vulnerable customer accredited</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CASE -->
+        <div class="view hidden" id="vCase">
+          <div class="cmdbar">
+            <span class="cmd">Save</span><span class="cmd">Save &amp; close</span><span class="sep"></span>
+            <button class="cmd" id="resolveCmd"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ok)" stroke-width="1.8"><path d="M3 8l3 3 7-7"/></svg>Resolve case</button>
+            <span class="cmd">Cancel case</span><span class="cmd">Assign</span>
+            <button class="cmd" id="diagBtn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="3.5" cy="8" r="1.8"/><circle cx="12.5" cy="3.5" r="1.8"/><circle cx="12.5" cy="12.5" r="1.8"/><path d="M5.2 7.2l5.6-2.8M5.2 8.8l5.6 2.8"/></svg>Routing diagnostics</button>
+            <span class="cmd cp" style="margin-inline-start:auto"><span class="cplogo" data-size="16"></span>Ask Copilot</span>
+          </div>
+          <div class="fhead">
+            <div class="row">
+              <div class="av" style="background:#0f6cbd;width:40px;height:40px"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.4"><rect x="2" y="4" width="12" height="9" rx="1"/><path d="M6 4V2.5h4V4"/></svg></div>
+              <div><div class="ftitle">Retirement options – tax-free cash enquiry</div><div class="fsub">Case · CAS-118204 · Created from email by Email-to-Case</div></div>
+              <div class="hfields">
+                <div class="hf"><div class="l">Priority</div><div class="v"><span class="pill hi">High</span></div></div>
+                <div class="hf"><div class="l">Status</div><div class="v" id="hStatus">In progress</div></div>
+                <div class="hf"><div class="l">Owner</div><div class="v">Priya Shah</div></div>
+                <div class="hf"><div class="l">First response due</div><div class="v" id="hSla">Today 17:00</div></div>
+              </div>
+            </div>
+            <div class="ftabs" id="caseTabs"><span class="ftab on" data-ctab="Summary">Summary</span><span class="ftab" data-ctab="Intent">Intent &amp; routing</span><span class="ftab" data-ctab="Related">Related cases</span><span class="ftab" data-ctab="SLA">SLA</span><span class="ftab" data-ctab="Audit">Audit</span></div>
+          </div>
+          <div id="ctOther" class="hidden"></div>
+<div class="cols" id="ctSummary">
+            <div>
+            <div class="card">
+              <h3>Case details <span class="cpbadge" style="margin-inline-start:auto"><span class="cplogo" data-size="12"></span>Classified by Copilot</span></h3>
+              <div class="field"><div class="l">Customer</div><div class="v"><a class="lnk" data-open="contact:Margaret Ellis">Margaret Ellis</a> · DOB 14/06/1962</div></div>
+              <div class="field"><div class="l">Product / plan</div><div class="v">Personal Pension · <a class="lnk" data-open="plan:PP-4471-9920">Plan PP-4471-9920</a></div></div>
+              <div class="field"><div class="l">Primary intent</div><div class="v">Retirement options – tax-free cash <span class="pill pp">92%</span></div></div>
+              <div class="field" id="rowIntent2"><div class="l">Additional intent</div><div class="v" id="fIntent2">Change of address <span class="pill pp">97%</span></div></div>
+              <div class="field" id="rowVuln"><div class="l">Vulnerability</div><div class="v" id="fVuln"><span class="pill md">Indicator: bereavement – awaiting validation</span></div></div>
+              <div class="field"><div class="l">Queue</div><div class="v"><a class="lnk" data-open="queue:Retirement Specialists – Priority Care">Retirement Specialists – Priority Care</a></div></div>
+              <div class="field"><div class="l">Entered via</div><div class="v"><a class="lnk" data-open="mailbox:lifeprotection@">lifeprotection@</a> mailbox <span class="pill gr">Not the owning team</span></div></div>
+              <div class="field"><div class="l">Origin</div><div class="v">Email · Mon 23/11/2026 09:12</div></div>
+            </div>
+            <div class="card" style="margin-top:12px" id="relatedCard">
+              <h3>Related cases</h3>
+              <div id="related" style="font-size:13px;color:var(--muted)">No related cases.</div>
+            </div>
+            </div>
+            <div class="card">
+              <h3>Timeline</h3>
+              <div class="tlbar">
+                <span class="tlbtn">Note</span>
+                <button class="tlbtn" id="tlEmailBtn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><path d="M2 4l6 5 6-5"/></svg>Email</button>
+                <span class="tlbtn">Task</span><span class="tlbtn">Phone call</span>
+              </div>
+              <div id="timeline"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROUTING DIAGNOSTICS -->
+        <div class="view hidden" id="vDiag">
+          <div class="cmdbar"><button class="cmd" id="diagBack">&#9664; Back to case</button><span class="sep"></span><span class="cmd">Routing diagnostics · CAS-118204</span><span class="cmd" style="margin-inline-start:auto;color:var(--muted)">Total time from receipt to assignment: <b style="color:var(--txt);margin-inline-start:4px">1 min 52 s</b></span></div>
+          <div class="diag">
+            <div class="stage"><div class="dot">1</div><div class="card"><h3>Receive <span class="pill bl">Exchange · server-side sync</span><span class="r">09:12:04</span></h3>
+              <div class="kv"><span class="k">Mailbox</span><span><a class="lnk" data-open="mailbox:lifeprotection@">lifeprotection@</a> (one of 270+ Retail addresses)</span><span class="k">From</span><span>margaret.ellis@example.com</span><span class="k">Attachments</span><span>Annual_Statement_2026.pdf (retained on case)</span></div>
+              <div class="today">Typical today: lands in the Life Protection shared mailbox, is read, judged “not ours” and forwarded – often more than once – before the pensions team starts work.</div></div></div>
+            <div class="stage"><div class="dot">2</div><div class="card"><h3>Create / correlate <span class="pill bl">Email-to-Case rule</span><span class="r">09:12:09</span></h3>
+              <div class="kv"><span class="k">Customer match</span><span>Contact matched on email address + plan reference in attachment</span><span class="k">Existing open case?</span><span>None found for this thread or customer → <b>new case CAS-118204</b></span><span class="k">Rule</span><span>Common Retail rule set (same rule applied behind every entry address)</span></div></div></div>
+            <div class="stage ai"><div class="dot">3</div><div class="card"><h3>Understand <span class="pill pp">Copilot intent &amp; context</span><span class="r">09:12:31</span></h3>
+              <div class="kv">
+                <span class="k">Intent 1</span><span class="conf">Retirement options – tax-free cash <span class="b"><i style="width:92%"></i></span>0.92</span>
+                <span class="k">Intent 2</span><span class="conf">Change of address <span class="b"><i style="width:97%"></i></span>0.97</span>
+                <span class="k">Product (from attachment)</span><span>Personal Pension · plan value £148,320</span>
+                <span class="k">Vulnerability indicator</span><span><span class="pill md">Bereavement</span> → policy requires human validation</span>
+                <span class="k">Auto-route threshold</span><span>0.85 · below threshold → Retail Triage (human validation)</span>
+              </div></div></div>
+            <div class="stage"><div class="dot">4</div><div class="card"><h3>Route <span class="pill bl">Unified routing</span><span class="r">09:13:40</span></h3>
+              <div class="kv"><span class="k">Rule matched</span><span>Intent = Retirement options AND Vulnerability indicator = true</span><span class="k">Queue</span><span><a class="lnk" data-open="queue:Retirement Specialists – Priority Care">Retirement Specialists – Priority Care</a></span><span class="k">Priority / SLA</span><span>High · first response same business day</span></div></div></div>
+            <div class="stage"><div class="dot">5</div><div class="card"><h3>Assign <span class="pill bl">Skills-based</span><span class="r">09:13:56</span></h3>
+              <div class="kv"><span class="k">Required skills</span><span>Retirement income · Vulnerable customer accredited</span><span class="k">Assigned to</span><span>Priya Shah (capacity 2 of 4)</span></div></div></div>
+          </div>
+        </div>
+
+        <!-- EMAIL -->
+        <div class="view hidden" id="vEmail">
+          <div class="cmdbar">
+            <button class="cmd" id="sendEmailBtn"><svg width="14" height="14" viewBox="0 0 16 16" fill="var(--brand)"><path d="M1.5 1.5l13 6.5-13 6.5 2-6.5z"/></svg><b>Send</b></button>
+            <span class="cmd">Save</span><span class="cmd">Insert template</span><span class="cmd">Insert knowledge article</span><span class="cmd">Attach file</span>
+            <span class="cmd cp" style="margin-inline-start:auto"><span class="cplogo" data-size="16"></span>Draft with Copilot</span>
+          </div>
+          <div class="fhead"><div class="row"><div><div class="ftitle">Email</div><div class="fsub">Regarding CAS-118204 · Reply on the original thread</div></div></div><div class="ftabs"><span class="ftab on">Email</span><span class="ftab">Details</span></div></div>
+          <div style="padding:12px 16px"><div class="card">
+            <div class="efield"><div class="l">From</div><div><span class="chipp"><span class="av sm" style="background:#0f6cbd">RS</span>L&amp;G Retirement Specialists</span></div></div>
+            <div class="efield"><div class="l">To</div><div><span class="chipp"><span class="av sm" style="background:#8764b8">ME</span>Margaret Ellis</span></div></div>
+            <div class="efield"><div class="l">Subject</div><div>RE: Change of address and my pension [CAS-118204]</div></div>
+            <div class="etool"><span><b>B</b></span><span><i>I</i></span><span><u>U</u></span><span>&#8801;</span><span>&#8226;&#8226;</span><span style="margin-inline-start:auto;color:var(--pp);display:flex;gap:6px;align-items:center"><span class="cplogo" data-size="14"></span>Copilot</span></div>
+            <div class="ebody empty" id="eBody">Compose your reply, or use Copilot to draft it from the case, the customer's email and approved knowledge.</div>
+          </div></div>
+        </div>
+
+        <div class="view hidden" id="vRec"></div>
+
+        <!-- INSIGHTS -->
+        <div class="view hidden" id="vIns">
+          <div class="cmdbar"><span class="cmd">Retail email – journey &amp; intent insights</span><span class="sep"></span><span class="cmd">Pilot journeys &#9662;</span><span class="cmd">Last 4 weeks &#9662;</span></div>
+          <div class="ibanner">Illustrative data for demonstration only. Baselines and success measures would be agreed with L&amp;G during discovery.</div>
+          <div class="kpis">
+            <div class="card kpi"><div class="l">Emails received (pilot journeys)</div><div class="n">18,420</div><div class="t">Across 23 entry addresses</div></div>
+            <div class="card kpi"><div class="l">Auto-routed on intent</div><div class="n">81%</div><div class="t">19% to human validation</div></div>
+            <div class="card kpi"><div class="l">Receipt → right team (median)</div><div class="n">2 min</div><div class="t">Measured independently of mailbox</div></div>
+            <div class="card kpi"><div class="l">Avg. transfers per case</div><div class="n">0.2</div><div class="t">Reason captured on each transfer</div></div>
+          </div>
+          <div class="cols">
+            <div class="card"><h3>Volume by customer intent</h3><div class="bars">
+              <div class="r"><span>Retirement options / tax-free cash</span><span class="t"><i style="width:88%"></i></span><span class="n">4,960</span></div>
+              <div class="r"><span>Change of personal details</span><span class="t"><i style="width:74%"></i></span><span class="n">4,180</span></div>
+              <div class="r"><span>Bereavement notification</span><span class="t"><i style="width:40%"></i></span><span class="n">2,250</span></div>
+              <div class="r"><span>Transfer in / out</span><span class="t"><i style="width:36%"></i></span><span class="n">2,030</span></div>
+              <div class="r"><span>Document / statement request</span><span class="t"><i style="width:52%"></i></span><span class="n">2,940</span></div>
+              <div class="r"><span>Complaint</span><span class="t"><i class="o" style="width:14%"></i></span><span class="n">760</span></div>
+              <div class="r"><span>Other / unclassified</span><span class="t"><i style="width:23%;background:#a19f9d"></i></span><span class="n">1,300</span></div>
+            </div></div>
+            <div class="card"><h3>Entry point vs. owning team</h3><div class="bars">
+              <div class="r"><span>Arrived at owning team’s address</span><span class="t"><i style="width:64%"></i></span><span class="n">64%</span></div>
+              <div class="r"><span>Arrived at another team’s address</span><span class="t"><i class="o" style="width:36%"></i></span><span class="n">36%</span></div>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin:6px 0 14px">Misdirected emails no longer need forwarding: intent decides the destination. L&amp;G has indicated roughly a third of email is misdirected today (to be validated).</p>
+            <h3>Routing confidence</h3><div class="bars">
+              <div class="r"><span>≥ 0.85 · auto-routed</span><span class="t"><i class="p" style="width:81%"></i></span><span class="n">81%</span></div>
+              <div class="r"><span>&lt; 0.85 · human validation</span><span class="t"><i style="width:19%;background:#a19f9d"></i></span><span class="n">19%</span></div>
+              <div class="r"><span>Reclassified by colleague</span><span class="t"><i class="o" style="width:4%"></i></span><span class="n">3.6%</span></div>
+            </div></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <aside id="cp">
+      <div class="cphead"><span class="cplogo" data-size="22"></span><span class="t">Copilot</span><span class="x"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13.5 8A5.5 5.5 0 1 1 11.8 4M13.5 2v3h-3"/></svg><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3l10 10M13 3L3 13"/></svg></span></div>
+      <div class="cptabs"><span class="cptab on">Copilot</span><span class="cptab">Smart assist</span><span class="cptab">Knowledge search</span></div>
+      <div id="cpbody"></div>
+      <div class="cpinput"><div class="chips" id="cpChips"></div>
+        <div class="cpbox"><span class="cplogo" data-size="16"></span>Ask a question<span class="s"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5l13 6.5-13 6.5 2-6.5z"/></svg></span></div>
+        <div class="disclaim">AI-generated content may be incorrect. Check sources before sharing.</div></div>
+    </aside>
+  </div>
+</div>
+
+<footer id="guide">
+  <span class="cplogo" data-size="26"></span>
+  <div><div class="stp" id="gStep">Step 1</div><div class="prog"><i id="gProg" style="width:0"></i></div></div>
+  <div class="gt"><b id="gTitle"></b><span id="gText"></span></div>
+  <button class="gbtn on" id="gNarr" title="Spoken narration (N)">&#128264; Narration</button><select id="voiceSel" title="Narration voice"></select><button class="gbtn" id="gAuto" title="Play the demo hands-free (A)">&#9654; Autoplay</button><button class="gbtn" id="gNotes">Talk track</button>
+  <button class="gbtn" id="gBack">&#9664; Back</button>
+  <button class="gbtn pri" id="gNext">Next &#9654;</button>
+  <button class="gbtn" id="gRestart">Restart</button>
+</footer>
+
+<div id="notes" class="hidden"><div class="h">Presenter talk track</div><div id="notesText"></div></div>
+<div id="ring" class="hidden"></div>
+<div id="callout" class="hidden"><b id="cTitle"></b><div id="cText"></div><div class="hint">&#128073; Click the highlighted item</div></div>
+<div id="snack" class="hidden"></div>
+<div id="explore" class="explore hidden"></div>
+
+<div id="toast" class="hidden">
+  <div class="tb"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><path d="M2 4l6 5 6-5"/></svg>New email case assigned · Priority Care<span class="tmr">Accept within 2:00</span></div>
+  <div class="tc"><div class="av" style="background:#8764b8">ME</div>
+    <div style="flex:1"><div style="font-weight:600">Margaret Ellis · CAS-118204</div><div class="k">Received 09:12 via lifeprotection@ · routed in 1 min 52 s</div>
+      <div class="tags"><span class="pill pp">Retirement options – tax-free cash</span><span class="pill pp">+ Change of address</span><span class="pill md">Vulnerability indicator</span></div>
+      <div class="q"><b>Subject:</b> Change of address and my pension</div></div></div>
+  <div class="ta"><button class="btn rej">Decline</button><button class="btn acc" id="acceptBtn">&#10003; Accept</button></div>
+</div>
+
+<div class="overlay" id="intro"><div class="ocard">
+  <div class="brandrow"><span class="cplogo" data-size="26"></span>Legal &amp; General Retail · Dynamics 365 Customer Service + Copilot</div>
+  <h1>From mailbox-led to intent-led email service</h1>
+  <p>A guided walkthrough of one Retail email, from arrival to resolution, using Email-to-Case, AI-assisted intent classification, intent-led routing and Copilot in the Customer Service workspace.</p>
+  <div class="meta">
+    <div><b>Emails per year</b><span class="big">1.4m+</span></div>
+    <div><b>Mailboxes</b><span class="big">270+</span></div>
+    <div><b>FTE in email handling</b><span class="big">172+</span></div>
+    <div><b>Misdirected (L&amp;G view)</b><span class="big">~35%</span></div>
+  </div>
+  <div class="cmp">
+    <span class="lab t">TODAY</span><div class="flow"><span>Customer picks 1 of 270+ addresses</span><b>›</b><span>Mailbox rules</span><b>›</b><span>Manual triage</span><b>›</b><span>Forward / re-queue</span><b>›</b><span>Resolution</span></div>
+    <span class="lab f">FUTURE</span><div class="flow"><span>Simplified entry point(s)</span><b>›</b><span class="a">Email-to-Case</span><b>›</b><span class="a">AI intent</span><b>›</b><span class="a">Intent-led routing</span><b>›</b><span class="a">Right team, one case</span><b>›</b><span class="a">Measure</span></div>
+  </div>
+  <p style="font-size:13px"><b style="color:var(--txt)">Scenario:</b> Margaret Ellis, 64 and recently bereaved, emails the <i>Life Protection</i> mailbox to change her address and ask about taking tax-free cash from her pension. You are <b style="color:var(--txt)">Priya Shah</b>, Retirement Specialist.</p>
+  <div class="act"><span class="note">Estate figures as shared by L&amp;G and still to be validated. Customer, case and pilot data are fictional. Use <b>Talk track</b> for presenter notes and arrow keys to navigate.</span><label class="nchk"><input type="checkbox" id="narrChk" checked> Narration</label><button class="btn" id="startAutoBtn">&#9654; Watch hands-free</button><button class="btn pri" id="startBtn">Start demo &#9654;</button></div>
+  <div id="edgeHint" class="hidden">&#128161; For the most natural British narrator voice (Ryan), open this file in Microsoft Edge.</div>
+</div></div>
+
+<div class="overlay hidden" id="finish"><div class="ocard">
+  <div class="brandrow"><span class="cplogo" data-size="26"></span>Demo complete</div>
+  <h1>Email → Case → Intent → Route → Handle → Resolve → Measure</h1>
+  <p>Margaret emailed the “wrong” address, yet reached the right specialist in under two minutes, with no forwarding, one case and a complete audit trail.</p>
+  <ol>
+    <li><b>Email-to-Case</b> turned the email into managed work and kept the attachment and thread on one record.</li>
+    <li><b>Copilot intent classification</b> found two intents and a vulnerability indicator, with a confidence score for each.</li>
+    <li><b>Intent-led routing</b> sent the work to a skilled team, regardless of which mailbox received it.</li>
+    <li><b>A colleague validated the vulnerability indicator</b>, so a person stays accountable on sensitive journeys.</li>
+    <li><b>A linked case for the second intent</b> went to its owning team with the full context, without forwarding.</li>
+    <li><b>Copilot answers and email drafts</b> were grounded in approved knowledge and reviewed before sending.</li>
+    <li><b>Thread correlation</b> attached the customer's reply to the existing case.</li>
+    <li><b>Measurement by journey and intent</b>, not by mailbox.</li>
+  </ol>
+  <div class="quote">“The email address should become an entry point, not the business process.”</div>
+  <div class="act"><span class="note">Capability availability (e.g. AI-based intent routing features that may be in preview) must be validated before inclusion in a committed design. Systems of record can remain authoritative.</span><button class="btn" id="finBack">&#9664; Back</button><button class="btn pri" id="restartBtn">Restart demo</button></div>
+</div></div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+let gid=0;
+function cpLogo(size){const id='cpl'+(gid++);return '<svg width="'+size+'" height="'+size+'" viewBox="0.6 -0.2 24.4 24.4" aria-hidden="true"><defs><linearGradient id="'+id+'u" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="22"><stop offset="0" stop-color="#55b8f7"/><stop offset="0.125" stop-color="#3d93e6"/><stop offset="0.25" stop-color="#3c95cc"/><stop offset="0.35" stop-color="#47a2a2"/><stop offset="0.45" stop-color="#5fb370"/><stop offset="0.55" stop-color="#98bc47"/><stop offset="0.65" stop-color="#cac32d"/><stop offset="0.775" stop-color="#e8c825"/></linearGradient><linearGradient id="'+id+'l" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="22"><stop offset="0.25" stop-color="#a586f0"/><stop offset="0.3" stop-color="#a960eb"/><stop offset="0.4" stop-color="#ab50d8"/><stop offset="0.5" stop-color="#c356b9"/><stop offset="0.6" stop-color="#d85a9f"/><stop offset="0.65" stop-color="#e85f8e"/><stop offset="0.725" stop-color="#ec6b84"/><stop offset="0.8" stop-color="#ee797a"/><stop offset="0.9" stop-color="#f08870"/><stop offset="1" stop-color="#f6a85e"/></linearGradient><linearGradient id="'+id+'b" gradientUnits="userSpaceOnUse" x1="5.5" y1="0" x2="21.4" y2="0"><stop offset="0" stop-color="#f67548"/><stop offset="0.126" stop-color="#f56643"/><stop offset="0.258" stop-color="#d04840"/><stop offset="0.377" stop-color="#f39a5f"/><stop offset="0.597" stop-color="#f5a162"/><stop offset="1" stop-color="#f8b358"/></linearGradient><linearGradient id="'+id+'s" gradientUnits="userSpaceOnUse" x1="8.5" y1="0" x2="14.4" y2="0"><stop offset="0" stop-color="#3d93e6" stop-opacity="0"/><stop offset="0.39" stop-color="#2b3fc7" stop-opacity="0.92"/><stop offset="1" stop-color="#2a38c0" stop-opacity="1"/></linearGradient></defs><g transform="translate(4.6 0) skewX(-12)"><rect x="11.4" y="6.5" width="10" height="15.5" rx="4" fill="url(#'+id+'l)"/><rect x="5.5" y="16.8" width="15.9" height="5.2" rx="2.6" fill="url(#'+id+'b)"/><rect x="0.4" y="2" width="9.1" height="15.6" rx="4" fill="url(#'+id+'u)"/><rect x="0.4" y="2" width="14" height="5" rx="2.5" fill="url(#'+id+'u)"/><rect x="0.4" y="2" width="14" height="5" rx="2.5" fill="url(#'+id+'s)"/></g></svg>';}
+function paintLogos(root){(root||document).querySelectorAll('.cplogo').forEach(el=>{if(!el.dataset.done){el.innerHTML=cpLogo(el.dataset.size||16);el.dataset.done='1';el.style.display='inline-flex';}});}
+paintLogos();
+
+let gen=0, instant=false;
+function sleep(ms){if(instant)return Promise.resolve();const g=gen;return new Promise((res,rej)=>setTimeout(()=>{g===gen?res():rej('stale');},ms));}
+function show(s){(typeof s==='string'?$(s):s).classList.remove('hidden');}
+function hide(s){(typeof s==='string'?$(s):s).classList.add('hidden');}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function snack(h){const s=$('#snack');s.innerHTML=h;show(s);clearTimeout(snack.t);snack.t=setTimeout(()=>hide(s),3000);}
+const IC={
+ dash:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/></svg>',
+ case:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="4" width="12" height="9" rx="1"/><path d="M6 4V2.5h4V4"/></svg>',
+ mail:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><path d="M2 4l6 5 6-5"/></svg>',
+ diag:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="3.5" cy="8" r="1.8"/><circle cx="12.5" cy="3.5" r="1.8"/><circle cx="12.5" cy="12.5" r="1.8"/><path d="M5.2 7.2l5.6-2.8M5.2 8.8l5.6 2.8"/></svg>',
+ chart:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 13V7M6 13V3M10 13V9M14 13V5"/></svg>'
+};
+let tabs=[];
+let activeTab='dash',flowTab='dash';
+function setTabs(active){activeTab=active;$('#apptabs').innerHTML=tabs.map(t=>'<span class="atab'+(t.id===active?' on':'')+'" data-tab="'+esc(t.id)+'">'+IC[t.ic||'case']+esc(t.label)+(t.x?'<span class="x" data-close="'+esc(t.id)+'">&#10005;</span>':'')+'</span>').join('');}
+function addTab(t){if(!tabs.find(x=>x.id===t.id))tabs.push(t);}
+function dropTab(id){tabs=tabs.filter(t=>t.id!==id);}
+function showView(id){['#vDash','#vCase','#vDiag','#vEmail','#vIns','#vRec'].forEach(hide);show(id);$('#views').scrollTop=0;if(id==='#vCase')caseTab('Summary');}
+function cpClear(){$('#cpbody').innerHTML='';$('#cpChips').innerHTML='';}
+function cpChips(list){$('#cpChips').innerHTML=list.map(c=>'<button class="chip"'+(c.id?' id="'+c.id+'"':'')+'>'+esc(c.label)+'</button>').join('');}
+function cpScroll(){const b=$('#cpbody');b.scrollTop=b.scrollHeight;}
+function cpUser(t){const d=document.createElement('div');d.className='uq';d.textContent=t;$('#cpbody').appendChild(d);cpScroll();}
+async function cpCard(o){
+  const body=$('#cpbody');let th=null;
+  if(!instant){th=document.createElement('div');th.className='cpcard';th.innerHTML='<div class="thinking"><span class="cplogo" data-size="16"></span>'+esc(o.thinking||'Generating…')+'<span class="bar"></span></div>';body.appendChild(th);paintLogos(th);cpScroll();}
+  try{await sleep(o.wait||1300);}finally{if(th)th.remove();}
+  const c=document.createElement('div');c.className='cpcard';
+  c.innerHTML='<div class="ch"><span class="cplogo" data-size="16"></span>'+o.title+'<span class="tm">'+(o.time||'Just now')+'</span></div>'+o.blocks.map(b=>'<div class="blk">'+b+'</div>').join('')+(o.actions?'<div class="blk cpacts">'+o.actions+'</div>':'')+'<div class="blk cpfoot">AI-generated'+(o.src?' · Sources: '+o.src:'')+'<span class="ic">&#128077; &#128078;</span></div>';
+  body.appendChild(c);paintLogos(c);cpScroll();
+  for(const b of c.querySelectorAll('.blk')){b.classList.add('in');cpScroll();await sleep(240);}
+  return c;
+}
+function tl(html,first){const t=$('#timeline');const d=document.createElement('div');d.className='tli'+(instant?'':' newin');d.innerHTML=html;if(first)t.prepend(d);else t.appendChild(d);paintLogos(d);return d;}
+const tic=(bg,svg)=>'<div class="ic" style="background:'+bg+'">'+svg+'</div>';
+const mailSvg='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0f6cbd" stroke-width="1.4"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><path d="M2 4l6 5 6-5"/></svg>';
+
+/* ================= Explorable records ================= */
+let st={vuln:false,child:false,sent:false,replied:false,resolved:false};
+IC.person='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.5 14c.8-3 3-4.3 5.5-4.3s4.7 1.3 5.5 4.3"/></svg>';
+IC.kb='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 3h5a1.5 1.5 0 0 1 1.5 1.5V14A1.5 1.5 0 0 0 7 12.5H2zM14 3H9.5A1.5 1.5 0 0 0 8 4.5V14a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>';
+IC.doc='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/></svg>';
+IC.queue='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h12M2 12h8"/></svg>';
+IC.plan='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 2v6l4 3"/></svg>';
+const VIEW={dash:'#vDash',case:'#vCase',diag:'#vDiag',mail:'#vEmail',ins:'#vIns'};
+const F=rows=>rows.map(([l,v])=>'<div class="field"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>').join('');
+const C=(title,inner,cls)=>'<div class="card'+(cls?' '+cls:'')+'"><h3>'+title+'</h3>'+inner+'</div>';
+const T=(h,rows)=>'<table class="grid"><thead><tr>'+h.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+const L=(k,t)=>'<a class="lnk" data-open="'+k+'">'+t+'</a>';
+const G=(...c)=>'<div class="rgrid">'+c.join('')+'</div>';
+const P=(c,t)=>'<span class="pill '+c+'">'+t+'</span>';
+const CPN=t=>'<div class="cpnote"><span class="cplogo" data-size="14"></span><div>'+t+'</div></div>';
+const NOTE=t=>'<div class="cpnote" style="background:#f3f9fd;border-color:#cfe4fa;color:#0e4775"><span>&#8505;</span><div>'+t+'</div></div>';
+const ME=()=>L('contact:Margaret Ellis','Margaret Ellis');
+
+function activateTab(id){const t=tabs.find(x=>x.id===id);if(!t)return;setTabs(id);
+  if(t.rec){showView('#vRec');renderRec(t.rec,t.sub||0);}else showView(VIEW[id]);placeHotspot();}
+function closeTab(id){const t=tabs.find(x=>x.id===id);if(!t||!t.rec)return;tabs=tabs.filter(x=>x.id!==id);
+  if(activeTab===id)activateTab(tabs.find(x=>x.id===flowTab)?flowTab:tabs[0].id);else setTabs(activeTab);}
+function openRec(key){
+  if(key==='case:CAS-118204'&&tabs.find(t=>t.id==='case')){activateTab('case');return;}
+  const r=getRec(key);if(!r){snack('This record is not part of the demo data.');return;}
+  const id='r:'+key;
+  if(!tabs.find(t=>t.id===id)){const recs=tabs.filter(t=>t.rec);if(recs.length>=4)tabs=tabs.filter(t=>t!==recs[0]);tabs.push({id,label:r.tab,ic:r.ic,rec:key,x:1,sub:0});}
+  activateTab(id);}
+function renderRec(key,sub){const r=getRec(key);if(!r)return;sub=Math.min(sub||0,r.tabs.length-1);
+  const v=$('#vRec');
+  v.innerHTML='<div class="cmdbar">'+(r.cmds||['Save','Save &amp; close','Refresh']).map(c=>'<span class="cmd">'+c+'</span>').join('')+'<span class="cmd cp" style="margin-inline-start:auto"><span class="cplogo" data-size="16"></span>Ask Copilot</span></div>'+
+   '<div class="fhead"><div class="row"><div class="av" style="background:'+(r.color||'#0f6cbd')+';width:40px;height:40px">'+(r.init||IC[r.ic].replace('currentColor','#fff'))+'</div><div><div class="ftitle">'+r.title+'</div><div class="fsub">'+r.sub+'</div></div>'+
+   '<div class="hfields">'+(r.hdr||[]).map(([l,x])=>'<div class="hf"><div class="l">'+l+'</div><div class="v">'+x+'</div></div>').join('')+'</div></div>'+
+   '<div class="ftabs">'+r.tabs.map((t,i)=>'<span class="ftab'+(i===sub?' on':'')+'" data-rtab="'+i+'">'+t[0]+'</span>').join('')+'</div></div>'+r.tabs[sub][1];
+  paintLogos(v);$('#views').scrollTop=0;}
+function caseTab(name){document.querySelectorAll('#caseTabs .ftab').forEach(t=>t.classList.toggle('on',t.dataset.ctab===name));
+  if(name==='Summary'){show('#ctSummary');hide('#ctOther');return;}
+  const o=$('#ctOther');o.innerHTML=CASETAB[name]();hide('#ctSummary');show(o);paintLogos(o);}
+
+/* ---------- this case: form tabs ---------- */
+function myCases(){const r=[[L('case:CAS-118204','CAS-118204'),'Retirement options – tax-free cash enquiry','Retirement Specialists – Priority Care',st.resolved?P('ok','Resolved'):P('bl','In progress'),'23/11/2026']];
+  if(st.child)r.push([L('case:CAS-118206','CAS-118206'),'Change of address','Customer Records',st.replied?P('ok','Resolved'):P('bl','In progress'),'23/11/2026']);
+  r.push([L('case:CAS-117650','CAS-117650'),'Bereavement – joint life policy claim','Life Protection Claims',P('bl','In progress'),'29/09/2026']);
+  r.push([L('case:CAS-109532','CAS-109532'),'Copy of annual statement','Customer Service',P('ok','Resolved'),'14/04/2025']);return r;}
+const CASETAB={
+ Intent:()=>G(
+  C('<span class="cplogo" data-size="16"></span>Classification',F([['Primary intent','Retirement options – tax-free cash'],['Confidence','<div class="conf"><span class="b"><i style="width:92%"></i></span>0.92</div>'],['Additional intent','Change of address · 0.97'+(st.child?' → '+L('case:CAS-118206','CAS-118206'):'')],['Product detected','Personal Pension ('+L('plan:PP-4471-9920','PP-4471-9920')+')'],['Vulnerability indicator',st.vuln?P('hi','Bereavement – confirmed by Priya Shah, 09:16'):P('md','Bereavement – awaiting human validation')],['Classifier','Copilot intent classification · Retail intent catalogue v0.3'],['Decision','Auto-routed (above 0.85 threshold)']])+'<div style="margin-top:10px"><button class="btn">Reclassify intent</button> <button class="btn">Report incorrect classification</button></div>'),
+  C('Routing',F([['Entry point',L('mailbox:lifeprotection@','lifeprotection@')+' '+P('gr','Not the owning team')],['Rule set','Retail – Common Email-to-Case'],['Rule matched','Intent = Retirement options AND Vulnerability = true'],['Queue',L('queue:Retirement Specialists – Priority Care','Retirement Specialists – Priority Care')],['Required skills','Retirement income · Vulnerable customer accredited'],['Assigned to','Priya Shah (highest capacity)'],['Receipt → assignment','1 min 52 s'],['Transfers','0']])+NOTE('Typical today: an email to the wrong mailbox is read, judged “not ours” and forwarded, often more than once, before work starts.'))),
+ Related:()=>G(C('Cases for this customer',T(['Case','Title','Team / queue','Status','Opened'],myCases()),'full'),
+  C('Why this matters',CPN('Margaret already has an open bereavement claim with Life Protection Claims ('+L('case:CAS-117650','CAS-117650')+'). Both teams can see each other’s work on one customer record, so she does not have to explain her circumstances twice.')+'<p style="font-size:12px;color:var(--muted);margin:8px 0 0">Related records: '+ME()+' · '+L('plan:PP-4471-9920','PP-4471-9920')+' · '+L('plan:LP-3302-1187','LP-3302-1187')+' · '+L('doc:statement','Annual_Statement_2026.pdf')+'</p>','full')),
+ SLA:()=>{const fr=st.sent?['Succeeded','#107c10',100,'Responded 23/11/2026 09:24, 12 min after receipt']:['In progress','#0f6cbd',8,'Due 23/11/2026 17:00 (same business day)'];
+  const rs=st.resolved?['Succeeded','#107c10',100,'Resolved 25/11/2026 10:21']:['In progress','#0f6cbd',st.replied?45:10,'Due 30/11/2026 17:00 (5 business days)'];
+  const k=(n,a)=>C(n+' '+P(a[0]==='Succeeded'?'ok':'bl',a[0]),'<div style="font-size:13px">'+a[3]+'</div><div class="meter"><i style="width:'+a[2]+'%;background:'+a[1]+'"></i></div>');
+  return G(k('First response',fr),k('Resolution',rs),C('SLA details',F([['SLA','Retail – Priority Care (vulnerable customers)'],['Clock started','23/11/2026 09:12:04 – on receipt, at any entry address'],['Pause conditions','Waiting for customer'],['Warning / failure actions','Notify team leader at 75%; escalate on failure']])+NOTE('The SLA is measured from the moment the email arrives, not from when the right team first picks it up. This exposes the time spent on triage and hand-offs.'),'full'));},
+ Audit:()=>{const r=[['23/11 09:12:04','System','Email received','via lifeprotection@ (server-side sync)'],['23/11 09:12:09','Email-to-Case','Case created','No open case or thread matched'],['23/11 09:12:31','Copilot','Intent classified','Retirement options 0.92 · Change of address 0.97'],['23/11 09:12:31','Copilot','Vulnerability indicator','Bereavement – sent for human validation'],['23/11 09:13:40','Unified routing','Routed to queue','Retirement Specialists – Priority Care'],['23/11 09:13:56','Unified routing','Assigned','Priya Shah'],['23/11 09:14:20','Priya Shah','Accepted','—']];
+  if(st.vuln)r.push(['23/11 09:16:02','Priya Shah','Vulnerability confirmed','Bereavement · support needs recorded']);
+  if(st.child)r.push(['23/11 09:17:10','Priya Shah','Linked case created','CAS-118206 → Customer Records']);
+  if(st.sent)r.push(['23/11 09:24:45','Priya Shah','Email sent','Copilot draft reviewed by colleague before sending']);
+  if(st.replied)r.push(['25/11 10:02:13','System','Email correlated','Customer reply added to this case (thread match)']);
+  if(st.resolved)r.push(['25/11 10:21:30','Priya Shah','Case resolved','Copilot resolution summary saved']);
+  return G(C('Audit history',T(['Date / time','Changed by','Event','Detail'],r.map(x=>[x[0],x[1]==='Copilot'?'<span class="cpbadge">Copilot</span>':x[1],'<b>'+x[2]+'</b>',x[3]])),'full'));}
+};
+
+/* ---------- other data ---------- */
+const OTHER_CASES={
+ 'CAS-118164':['Retirement quote request','David Okafor','Retirement quote','pensions@','Retirement Specialists – General','Normal','Customer asked for an updated retirement quote ahead of his 66th birthday in January.'],
+ 'CAS-118171':['Drawdown – change income','Susan Hartley','Drawdown income change','retirement@','Retirement Specialists – General','Normal','Wants to reduce her monthly drawdown income from £850 to £600 from January.'],
+ 'CAS-118185':['Tax-free cash enquiry','Ian Whitfield','Retirement options – tax-free cash','customerservice@','Retirement Specialists – General','Normal','Asks whether he can take tax-free cash in instalments rather than all at once.'],
+ 'CAS-118190':['Transfer-in documents','Aisha Rahman','Transfer in','pensions.admin@','Retirement Specialists – General','Low','Sent signed transfer discharge forms for a workplace pension transfer-in.'],
+ 'CAS-118197':['Retirement options (vulnerable)','Peter Lowe','Retirement options','lifeprotection@','Retirement Specialists – Priority Care','High','Recently diagnosed with a serious illness; asking about early access to his pension. Vulnerability confirmed.']};
+const CONTACTS={'David Okafor':['DO','#ca5010','65','Leicester'],'Susan Hartley':['SH','#038387','68','Bristol'],'Ian Whitfield':['IW','#4f6bed','59','Cardiff'],'Aisha Rahman':['AR','#c239b3','47','Manchester'],'Peter Lowe':['PL','#498205','61','Norwich']};
+const KA={
+ 'KA-2207':['Accessing your pension: tax-free cash and options','Retirement','<p>This article helps colleagues explain the main ways a customer can access a defined contribution pension from minimum pension age.</p><h4>Tax-free cash</h4><p>Customers can usually take up to a quarter of their pension as a tax-free lump sum, within the lump sum allowance. They can take it all at once or in stages.</p><h4>Options for the remaining pot</h4><ul><li><b>Flexible income (drawdown):</b> the pot stays invested and the customer takes taxable income as needed.</li><li><b>Guaranteed income (annuity):</b> the customer uses the pot to buy a secure income for life.</li><li><b>Further lump sums:</b> 75% of each further lump sum is taxed as income.</li></ul><h4>Colleague checklist</h4><ul><li>Confirm identity and plan details.</li><li>Signpost Pension Wise guidance (see KA-1984).</li><li>Do not give a personal recommendation. Refer to the advice team if the customer asks for one.</li></ul>'],
+ 'KA-1984':['Retirement risk warnings and Pension Wise signposting','Compliance','<p>Before a customer accesses their pension, colleagues must signpost free, impartial guidance from Pension Wise and give the relevant risk warnings.</p><h4>When to use</h4><ul><li>Any enquiry about taking benefits, tax-free cash or drawdown.</li><li>Repeat the signposting in written responses.</li></ul><h4>Key risk themes</h4><ul><li>Tax on lump sums and income</li><li>Running out of money</li><li>Investment risk and charges</li><li>Effect on means-tested benefits</li><li>Scams</li></ul>'],
+ 'KA-0611':['Supporting customers through bereavement','Customer care','<p>Bereaved customers may find contact difficult. Take extra care with tone, pace and the number of times they are asked for information.</p><h4>Do</h4><ul><li>Acknowledge the loss early and sincerely.</li><li>Offer a phone call and allow extra time.</li><li>Check for linked products or claims so the customer only has to explain once.</li><li>Record support needs (with consent) so other teams can see them.</li></ul><h4>Avoid</h4><ul><li>Transferring the customer between teams without context.</li><li>Sending standard templates without personalisation.</li></ul>']};
+const QUEUES={
+ 'Retirement Specialists – Priority Care':{w:3,m:6,wait:'12m',skills:'Retirement income · Vulnerable customer accredited',mem:[['Priya Shah',P('ok','Available'),'2 / 4','Retirement income, Vulnerable customer'],['Tom Briggs',P('ok','Available'),'3 / 4','Retirement income, Vulnerable customer'],['Hannah Cole',P('md','Busy'),'4 / 4','Retirement income, Bereavement'],['Marcus Reid',P('gr','Offline'),'0 / 4','Retirement income, Vulnerable customer']]},
+ 'Retirement Specialists – General':{w:11,m:14,wait:'38m',skills:'Retirement income',mem:[['Priya Shah',P('ok','Available'),'2 / 4','Retirement income'],['Lewis Grant',P('ok','Available'),'1 / 4','Retirement income, Drawdown'],['Sofia Marin',P('md','Busy'),'4 / 4','Annuities']]},
+ 'Retail Triage – Human validation':{w:4,m:5,wait:'26m',skills:'Retail triage',mem:[['Priya Shah',P('ok','Available'),'2 / 4','Retail triage'],['Ben Ashworth',P('ok','Available'),'2 / 5','Retail triage, Complaints']]}};
+
+function getRec(key){const ix=key.indexOf(':'),type=key.slice(0,ix),name=key.slice(ix+1);
+ if(type==='contact'&&name==='Margaret Ellis'){
+  const addr=st.replied?'14 Grove Lane, Headingley, Leeds LS6 2AB '+P('ok','Updated 24/11'):st.child?'27 Elm Road, Shrewsbury SY3 9QD '+P('md','Change pending · CAS-118206'):'27 Elm Road, Shrewsbury SY3 9QD';
+  const vuln=st.vuln?P('hi','Bereavement – confirmed'):P('md','Indicator – awaiting validation');
+  const cases=myCases();const open=cases.filter(r=>r[3].indexOf('Resolved')<0).length;
+  const ints=[];if(st.replied)ints.push(['25/11/2026','Email','Inbound','RE: Change of address and my pension','Correlated to CAS-118204']);
+  if(st.sent)ints.push(['23/11/2026','Email','Outbound','RE: Change of address and my pension','Priya Shah']);
+  ints.push(['23/11/2026','Email','Inbound','Change of address and my pension','Email-to-Case → Priority Care'],['02/10/2026','Phone','Inbound','Bereavement claim – documents','J. Turner, Life Protection Claims'],['29/09/2026','Email','Inbound','My husband has passed away – life policy','Life Protection Claims'],['14/04/2025','Email','Inbound','Copy of annual statement','Customer Service']);
+  return {tab:'Margaret Ellis',ic:'person',init:'ME',color:'#8764b8',title:'Margaret Ellis',sub:'Contact · Retail customer · Customer ID LG-C-0048213',cmds:['Save','+ New case','Refresh','Assign','Deactivate'],
+   hdr:[['Vulnerability',vuln],['Open cases',String(open)],['Customer since','1998'],['Segment','At retirement']],
+   tabs:[
+    ['Summary',G(C('Contact information',F([['Full name','Mrs Margaret Ellis'],['Date of birth','14/06/1962 (64)'],['Email','margaret.ellis@example.com'],['Mobile','+44 7700 900251'],['Address',addr],['Preferred channel','Email; phone for complex topics']])),
+      C('<span class="cplogo" data-size="16"></span>Copilot customer summary','<p style="margin:0;font-size:13px;line-height:1.55">Long-standing customer with a Personal Pension, a Stocks &amp; Shares ISA and a joint life policy. Her husband Robert passed away in September 2026, and a life claim is being handled by Life Protection Claims ('+L('case:CAS-117650','CAS-117650')+'). She is planning to retire in spring 2027 and has recently moved to Leeds.</p>'+CPN('Suggested next best action: the pension expression of wish still names Robert Ellis. Offer an updated nomination form.')),
+      C('Products',T(['Product','Reference','Status'],[['Personal Pension',L('plan:PP-4471-9920','PP-4471-9920'),P('ok','Active')],['Joint Life Protection',L('plan:LP-3302-1187','LP-3302-1187'),P('md','Claim in progress')],['Stocks &amp; Shares ISA','IS-7712-0045',P('ok','Active')]])),
+      C('Recent activity',T(['Date','Channel','Subject'],ints.slice(0,4).map(x=>[x[0],x[1]+' · '+x[2],x[3]]))))],
+    ['Details',G(C('Personal details',F([['Title','Mrs'],['First name','Margaret'],['Last name','Ellis'],['Marital status',st.vuln?'Widowed (updated 23/11/2026)':'Married'],['National Insurance no.','QQ •• •• •• C'],['Identity check',P('ok','Passed – email + plan reference')]])),
+      C('Servicing',F([['Customer segment','Retail – At retirement'],['Advice status','Non-advised'],['Language','English'],['Support needs',st.vuln?'Allow extra time; offer a phone call (recorded with consent)':'None recorded'],['Data residency','UK']])))],
+    ['Products &amp; plans',G(C('Holdings',T(['Product','Reference','Value / cover','Start date','Status'],[['Personal Pension',L('plan:PP-4471-9920','PP-4471-9920'),'£148,320','01/03/2001',P('ok','Active')],['Joint Life Protection',L('plan:LP-3302-1187','LP-3302-1187'),'£120,000 cover','15/07/2009',P('md','Claim in progress')],['Stocks &amp; Shares ISA','IS-7712-0045','£12,450','06/04/2016',P('ok','Active')]])+NOTE('Product data is read from the policy administration systems, which remain the systems of record.'),'full'))],
+    ['Cases',G(C('Cases',T(['Case','Title','Team / queue','Status','Opened'],cases),'full'),C('Insight',CPN('Two Retail teams are working with Margaret at the moment. Both cases sit on one customer record, so neither team needs to ask her to repeat her circumstances.'),'full'))],
+    ['Interactions',G(C('Interaction history',T(['Date','Channel','Direction','Subject','Handled by'],ints),'full'))],
+    ['Consents &amp; preferences',G(C('Communication preferences',F([['Email',P('ok','Allowed')],['Phone',P('ok','Allowed')],['Post',P('ok','Allowed')],['Marketing',P('gr','Opted out')],['Large print','No']])),C('Consents',F([['Paperless statements','Yes (since 2019)'],['Call recording','Accepted'],['Vulnerability data',st.vuln?'Consent given 23/11/2026':'Not yet requested'],['Third-party authority','None']])))]]};}
+ if(type==='contact'&&CONTACTS[name]){const c=CONTACTS[name];const mine=Object.entries(OTHER_CASES).filter(([k,v])=>v[1]===name);
+  return {tab:name,ic:'person',init:c[0],color:c[1],title:name,sub:'Contact · Retail customer',cmds:['Save','+ New case','Refresh'],hdr:[['Age',c[2]],['Location',c[3]],['Open cases',String(mine.length)]],
+   tabs:[['Summary',G(C('Contact information',F([['Full name',name],['Age',c[2]],['Email',name.toLowerCase().replace(' ','.')+'@example.com'],['Town',c[3]],['Preferred channel','Email']])),C('Cases',T(['Case','Title','Status'],mine.map(([k,v])=>[L('case:'+k,k),v[0],P('bl','In progress')]))))],
+         ['Details',G(C('Details',F([['Customer segment','Retail'],['Advice status','Non-advised'],['Support needs','None recorded']])))]]};}
+ if(type==='case'&&OTHER_CASES[name]){const c=OTHER_CASES[name];
+  return {tab:name,ic:'case',title:c[0],sub:'Case · '+name+' · Created from email by Email-to-Case',cmds:['Save','Resolve case','Assign','Refresh'],hdr:[['Priority',P(c[5]==='High'?'hi':c[5]==='Low'?'ok':'md',c[5])],['Status','In progress'],['Owner','Priya Shah']],
+   tabs:[['Summary',G(C('Case details',F([['Customer',L('contact:'+c[1],c[1])],['Primary intent',c[2]],['Entered via',c[3]],['Queue',L('queue:'+c[4],c[4])],['Origin','Email']])),C('<span class="cplogo" data-size="16"></span>Copilot case summary','<p style="margin:0;font-size:13px">'+c[6]+'</p>'))],
+         ['Intent &amp; routing',G(C('Routing',F([['Intent',c[2]],['Confidence','0.9'+(name.slice(-1))],['Entry point',c[3]],['Queue',c[4]],['Transfers','0']])))]]};}
+ if(type==='case'&&name==='CAS-118206'){const done=st.replied;
+  return {tab:name,ic:'case',title:'Change of address',sub:'Case · CAS-118206 · Linked to '+L('case:CAS-118204','CAS-118204'),cmds:['Save','Resolve case','Assign','Refresh'],hdr:[['Priority',P('md','Normal')],['Status',done?P('ok','Resolved'):'In progress'],['Queue','Customer Records']],
+   tabs:[['Summary',G(C('Case details',F([['Customer',ME()],['Intent','Change of address (0.97)'],['New address','14 Grove Lane, Headingley, Leeds LS6 2AB'],['Parent case',L('case:CAS-118204','CAS-118204')],['Vulnerability',st.vuln?P('hi','Bereavement – carried over'):'—'],['Owner',done?'Kerry Doyle':'Customer Records queue']])),
+     C('Context shared',NOTE('Created from CAS-118204. The original email and attachment were shared, so Customer Records did not need to contact the customer again.')+(done?'<p style="font-size:13px">Address updated in the policy administration system on 24/11/2026, and written confirmation was sent.</p>':''))) ],
+    ['Timeline',G(C('Timeline',T(['When','Activity','By'],[['23/11 09:17','Case created from CAS-118204','Priya Shah'],['23/11 09:18','Routed to Customer Records','Unified routing']].concat(done?[['24/11 11:05','Address updated (system of record)','Kerry Doyle'],['24/11 11:07','Confirmation letter sent','Kerry Doyle'],['24/11 11:08','Case resolved','Kerry Doyle']]:[])),'full'))]]};}
+ if(type==='case'&&name==='CAS-117650')return {tab:name,ic:'case',title:'Bereavement – joint life policy claim',sub:'Case · CAS-117650 · Life Protection Claims',cmds:['Save','Assign','Refresh'],hdr:[['Priority',P('hi','High')],['Status','In progress'],['Owner','Jenny Turner']],
+   tabs:[['Summary',G(C('Case details',F([['Customer',ME()],['Policy',L('plan:LP-3302-1187','LP-3302-1187')],['Life assured (deceased)','Robert Ellis · died 21/09/2026'],['Claim stage','Assessment'],['Documents','Death certificate received 08/10/2026'],['Entered via','lifeprotection@']])),C('<span class="cplogo" data-size="16"></span>Copilot case summary','<p style="margin:0;font-size:13px">Margaret notified us of her husband’s death on 29/09. The claim is in assessment with all documents received. Expected decision by 04/12/2026.</p>'+(st.child?CPN('Margaret’s new address (CAS-118206) has been shared with this team.'):'')))],
+    ['Claim',G(C('Claim details',F([['Sum assured','£120,000'],['Claim type','Death – joint first death'],['Beneficiary','Margaret Ellis (surviving policyholder)'],['Assessor','Jenny Turner']])))]]};
+ if(type==='case'&&name==='CAS-109532')return {tab:name,ic:'case',title:'Copy of annual statement',sub:'Case · CAS-109532 · Customer Service',hdr:[['Status',P('ok','Resolved')],['Resolved','14/04/2025']],
+   tabs:[['Summary',G(C('Case details',F([['Customer',ME()],['Request','Duplicate copy of the 2025 pension statement'],['Resolution','Statement re-sent by email'],['Handling time','2 days (forwarded twice between mailboxes)']])))]]};
+ if(type==='plan'&&name==='PP-4471-9920'){
+  return {tab:'PP-4471-9920',ic:'plan',title:'Personal Pension · PP-4471-9920',sub:'Plan · Read from the policy administration system (system of record)',cmds:['Refresh','Request illustration','Send forms'],hdr:[['Value','£148,320'],['Status',P('ok','Active')],['Retirement age','65'],['Plan holder',ME()]],
+   tabs:[['Summary',G(C('Plan details',F([['Plan type','Personal Pension (defined contribution)'],['Start date','01/03/2001'],['Value at 05/04/2026','£148,320'],['Regular contribution','£200 per month'],['Selected retirement age','65 (June 2027)'],['Estimated tax-free cash','£37,080 (25%)']])),C('Integration',NOTE('Plan data is shown live from the policy administration system. Dynamics orchestrates the service work, while the plan system remains authoritative.')))],
+    ['Funds',G(C('Fund allocation',T(['Fund','Allocation','Value'],[['Multi-Asset Fund 4','55%','£81,576'],['Global Equity Index Fund','25%','£37,080'],['Cash Fund','10%','£14,832'],['UK Gilt Fund','10%','£14,832'],['<b>Total</b>','<b>100%</b>','<b>£148,320</b>']]),'full'))],
+    ['Transactions',G(C('Recent transactions',T(['Date','Type','Amount'],[['01/11/2026','Regular contribution','£200.00'],['01/10/2026','Regular contribution','£200.00'],['01/09/2026','Regular contribution','£200.00'],['05/04/2026','Annual management charge','−£148.32'],['01/03/2026','Regular contribution','£200.00']]),'full'))],
+    ['Beneficiaries',G(C('Expression of wish',T(['Nominee','Relationship','Share','Status'],[['Robert Ellis','Spouse','100%',P('hi','Deceased – review needed')]])+CPN('The nominated beneficiary has died. Suggest including an updated expression-of-wish form in the next letter to Margaret.'),'full'))]]};}
+ if(type==='plan'&&name==='LP-3302-1187')return {tab:'LP-3302-1187',ic:'plan',title:'Joint Life Protection · LP-3302-1187',sub:'Policy · Read from the protection administration system',hdr:[['Cover','£120,000'],['Status',P('md','Claim in progress')]],
+   tabs:[['Summary',G(C('Policy details',F([['Lives assured','Robert Ellis (deceased) · '+ME()],['Basis','Joint life, first death'],['Start date','15/07/2009'],['Monthly premium','£38.40 (stopped 21/09/2026)'],['Claim',L('case:CAS-117650','CAS-117650')]])))]]};
+ if(type==='queue'&&QUEUES[name]){const q=QUEUES[name];
+  return {tab:name.length>24?name.slice(0,24)+'…':name,ic:'queue',title:name,sub:'Queue · Unified routing · Intent-led',hdr:[['Items waiting',String(q.w)],['Members',String(q.m)],['Avg. wait',q.wait]],
+   tabs:[['Summary',G(C('Queue details',F([['Type','Records (email cases)'],['Assignment method','Highest capacity'],['Required skills',q.skills],['Entry points','Any Retail address, via the common Email-to-Case rule set'],['Operating hours','Mon–Fri 08:00–18:00']])),C('Why this queue exists',NOTE('This queue is organised around a customer need, not a mailbox. Work arrives from any entry address once its intent is known.')))],
+    ['Members',G(C('Members',T(['Name','Presence','Capacity','Skills'],q.mem),'full'))],
+    ['Routing rules',G(C('Route-to-queue rules (Retail – Common Email-to-Case)',T(['Order','Condition','Destination'],[['1','Intent = Complaint','Retail Complaints'],['2','Intent = Bereavement notification','Bereavement Support'],['3','Intent = Retirement options AND Vulnerability = true','Retirement Specialists – Priority Care'],['4','Intent = Retirement options','Retirement Specialists – General'],['5','Intent = Change of personal details','Customer Records'],['6','Confidence < 0.85','Retail Triage – Human validation']]),'full'))]]};}
+ if(type==='mailbox')return {tab:name,ic:'mail',title:name+' – email entry point',sub:'Mailbox · Exchange Online · Server-side synchronisation',hdr:[['Status',P('ok','Active')],['Rule set','Retail – Common Email-to-Case']],
+   tabs:[['Summary',G(C('Entry point',F([['Address',name],['Historic owner','Life Protection team'],['Creates cases','When no open case or thread matches'],['Routing','Intent-led (not mailbox-led)'],['Auto-acknowledgement','Retail acknowledgement v2']])),C('Last 30 days (illustrative)','<div class="bars"><div class="r"><span>Emails received</span><span class="t"><i style="width:100%"></i></span><span class="n">3,412</span></div><div class="r"><span>Routed to Life Protection</span><span class="t"><i style="width:59%"></i></span><span class="n">59%</span></div><div class="r"><span>Routed to other teams</span><span class="t"><i class="o" style="width:41%"></i></span><span class="n">41%</span></div></div>'+NOTE('41% of this mailbox’s email belongs to other teams. Today that would mean forwarding; here intent decides where it goes.')))],
+    ['Intent mix',G(C('Top intents arriving at this address (illustrative)','<div class="bars"><div class="r"><span>Life claim / bereavement</span><span class="t"><i style="width:44%"></i></span><span class="n">44%</span></div><div class="r"><span>Retirement options</span><span class="t"><i class="p" style="width:17%"></i></span><span class="n">17%</span></div><div class="r"><span>Change of details</span><span class="t"><i class="p" style="width:14%"></i></span><span class="n">14%</span></div><div class="r"><span>Policy documents</span><span class="t"><i style="width:15%"></i></span><span class="n">15%</span></div><div class="r"><span>Other</span><span class="t"><i style="width:10%;background:#a19f9d"></i></span><span class="n">10%</span></div></div>','full'))],
+    ['Configuration',G(C('Configuration',F([['Synchronisation','Server-side sync (Exchange Online)'],['Thread correlation','Conversation tracking + case number in subject'],['Attachments','Retained on case'],['Spam / out-of-office filtering','Enabled'],['Retention','As per Retail records policy']])))]]};
+ if(type==='ka'&&KA[name]){const k=KA[name];
+  return {tab:name,ic:'kb',title:k[0],sub:'Knowledge article · '+name+' · Published',cmds:['Copy link','Email content','Feedback'],hdr:[['Category',k[1]],['Owner','Retail Knowledge Team'],['Review due','01/03/2027']],
+   tabs:[['Content','<div style="padding:12px 16px"><div class="card article">'+k[2]+'</div></div>'],['Properties',G(C('Properties',F([['Article number',name],['Status',P('ok','Published')],['Version','4.0'],['Audience','Internal – Retail colleagues'],['Used by Copilot','Yes – approved grounding source']])))]]};}
+ if(type==='doc')return {tab:'Annual_Statement_2026.pdf',ic:'doc',title:'Annual_Statement_2026.pdf',sub:'Attachment · from customer email · 212 KB',cmds:['Download','Open in new window'],hdr:[['Linked to','CAS-118204']],
+   tabs:[['Preview','<div style="padding:16px"><div class="doc"><div class="dh"><b style="font-size:15px;color:#00205b">Legal &amp; General</b><span>Annual Pension Statement</span></div><p>Mrs M Ellis<br>27 Elm Road, Shrewsbury SY3 9QD</p><p><b>Plan:</b> Personal Pension · PP-4471-9920<br><b>Statement date:</b> 05 April 2026</p>'+T(['','Amount'],[['Plan value at 05/04/2025','£139,870'],['Contributions paid','£2,400'],['Investment growth','£6,198'],['Charges','−£148'],['<b>Plan value at 05/04/2026</b>','<b>£148,320</b>']])+'<p style="margin-top:12px">Selected retirement age: <b>65</b></p><p style="font-size:11px;color:var(--muted)">Illustrative document for demonstration purposes.</p></div></div>'],
+    ['Extracted data',G(C('<span class="cplogo" data-size="16"></span>Information extracted by Copilot',T(['Field','Value','Confidence'],[['Plan reference','PP-4471-9920','0.99'],['Statement date','05/04/2026','0.98'],['Plan value','£148,320','0.97'],['Selected retirement age','65','0.95'],['Address on statement','27 Elm Road, Shrewsbury SY3 9QD','0.96']])+CPN('The address on the statement differs from the new address in the email. This was flagged for the change-of-address case.'),'full'))]]};
+ return null;}
+
+const CUST_EMAIL='<p>Hello,</p><p>My husband Robert passed away in September and I have now moved in with my daughter in Leeds. Please could you update my address to 14 Grove Lane, Headingley, Leeds LS6 2AB.</p><p>I am 64 and thinking about retiring next spring. Can I take some of my pension as a tax-free lump sum, and what would that mean for the rest of it? I have attached my last annual statement.</p><p>I wasn\'t sure which email address to use – I hope this is the right one.</p><p>Margaret Ellis</p>';
+const REPLY='<p>Dear Mrs Ellis,</p><p>Thank you for getting in touch, and I am very sorry for the loss of your husband. You have contacted the right place – I will look after both of your requests personally, so there is no need to email anyone else.</p><p><b>Your new address</b><br>We have passed your new address to our Customer Records team under reference CAS-118206. You will receive written confirmation within two working days.</p><p><b>Taking tax-free cash</b><br>From your Personal Pension you can usually take up to 25% of its value as a tax-free lump sum. Based on your April 2026 statement, that would be around £37,080. The rest can stay invested to provide an income later, be used to buy a guaranteed income for life, or be taken as further cash, which would be taxable. The right choice depends on your wider circumstances.</p><p>Before you decide, we recommend free, impartial guidance from Pension Wise, a government service. I would also be glad to arrange a call to talk you through your options at a pace that suits you. Please just reply with a day and time that works for you.</p><p>Kind regards,<br>Priya Shah<br>Retirement Specialist, Legal &amp; General</p>';
+
+const S=[
+ {t:'Welcome',x:'Start the guided demo.',target:'#startBtn',
+  n:'"Today we want to show what it looks like when the email address becomes an entry point, not the business process. We will follow one real-world style email from arrival to resolution."',
+  enter:async()=>{}},
+ {t:'The specialist\'s workspace',x:'Priya, a Retirement Specialist, works from one Customer Service workspace. Work arrives from many addresses, but reaches her team because of the customer\'s intent.',target:null,
+  n:'Point at the "Entered via" column: these cases came through pensions@, retirement@, customerservice@ and even lifeprotection@, yet all landed with the right team. "The customer should not need to understand L&G\'s organisational structure to get to the right outcome."',
+  enter:async()=>{hide('#intro');cpChips([{label:'Which of my cases are closest to breaching SLA?'},{label:'Summarise my Priority Care queue'}]);
+   await cpCard({title:'Good morning, Priya',wait:700,blocks:['<div class="hello"><div class="h">Ready when you are.</div></div>','<p>You have <b>3 emails</b> waiting in Retirement Specialists – Priority Care, the oldest 18 minutes.</p>','<p class="k">Copilot can summarise cases and emails, answer questions from approved knowledge and draft customer responses for you to review.</p>']});}},
+ {t:'An email case is routed to Priya',x:'Margaret emailed the Life Protection mailbox. Email-to-Case created a case, Copilot found the intent, and unified routing sent it straight to a skilled specialist.',target:'#acceptBtn',
+  n:'"Notice what did not happen: nobody in Life Protection had to read this, decide it wasn\'t theirs and forward it. The notification already shows the intents, the vulnerability indicator and how long routing took: under two minutes."',
+  enter:async()=>{await sleep(500);show('#toast');}},
+ {t:'One case, full context',x:'The email, its attachment and the AI classification sit on a single case. Copilot summarises both requests and the customer\'s circumstances.',target:'#diagBtn',
+  n:'"Priya does not start by reading an unmanaged mailbox item. She starts with managed work: who the customer is, what they want, what product it relates to, and what Copilot extracted from the attached statement." Then open Routing diagnostics to show how it got here.',
+  enter:async()=>{hide('#toast');$('#sessHome').classList.remove('active');show('#sessLabel');show('#sessCase');$('#sessCase').classList.add('active');
+   tabs=[{id:'case',label:'CAS-118204',ic:'case'}];setTabs('case');showView('#vCase');
+   $('#timeline').innerHTML='';
+   tl(tic('#e8f3fc',mailSvg)+'<div style="flex:1"><div class="h">Email received · Change of address and my pension</div><div class="m">From margaret.ellis@example.com · To lifeprotection@ · Mon 23/11/2026 09:12</div><div class="bd">'+CUST_EMAIL+'<a class="att lnk" data-open="doc:statement">&#128206; Annual_Statement_2026.pdf · 212 KB</a></div></div>');
+   tl(tic('#f3f2f1','<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#616161" stroke-width="1.4"><rect x="2" y="4" width="12" height="9" rx="1"/></svg>')+'<div><div class="h">Case created by Email-to-Case · routed to Retirement Specialists – Priority Care</div><div class="m">System · 09:13</div></div>');
+   cpClear();cpChips([{label:'What does the attached statement show?'},{label:'Has Margaret contacted us before?'}]);
+   await cpCard({title:'Case summary',thinking:'Reading the email and attachment…',blocks:[
+    '<p><span class="k">Customer</span><br>Margaret Ellis, 64. Personal Pension plan holder (PP-4471-9920). Husband recently passed away; now living with her daughter in Leeds.</p>',
+    '<p><span class="k">Request 1 · Retirement options</span><br>Plans to retire next spring and asks whether she can take part of her pension as a tax-free lump sum, and what happens to the rest.</p>',
+    '<p><span class="k">Request 2 · Change of address</span><br>New address: 14 Grove Lane, Headingley, Leeds LS6 2AB.</p>',
+    '<p><span class="k">From the attachment</span><br>Annual statement: plan value <b>£148,320</b> (as at 05/04/2026); selected retirement age 65.</p>',
+    '<p><span class="k">Note</span><br>Sent to the Life Protection mailbox. The customer was unsure which address to use.</p>'],src:'Email, attachment, customer record'});}},
+ {t:'How it got here: routing diagnostics',x:'Every stage is visible and auditable: receive, create or correlate, understand, route and assign, with confidence scores and the rule that matched.',target:'#diagBack',
+  n:'"This is the common orchestration layer behind every entry address. Intent is the starting signal, but routing also uses product, priority, vulnerability and skills. Below a confidence of 0.85 the email goes to a human-validation queue rather than being auto-routed. These thresholds are governance decisions L&G would own." Point out the amber "Typical today" note.',
+  enter:async()=>{addTab({id:'diag',label:'Routing diagnostics',ic:'diag',x:1});setTabs('diag');showView('#vDiag');}},
+ {t:'A colleague validates the vulnerability',x:'Copilot flagged a possible vulnerability, but L&G policy keeps a person accountable. Priya reviews the evidence and confirms.',target:'#confirmVulnBtn',
+  n:'"AI supports governed decisions. It does not replace them. Where are you comfortable letting AI route on its own, and where should a colleague confirm? Here, a bereavement indicator always needs human validation, and the decision is recorded on the case for audit."',
+  enter:async()=>{dropTab('diag');setTabs('case');showView('#vCase');
+   await cpCard({title:'Vulnerability indicator – please review',thinking:'Preparing evidence…',wait:900,blocks:['<p>Copilot detected a possible <b>bereavement</b> indicator in the customer\'s email:</p>','<blockquote>“My husband Robert passed away in September and I have now moved in with my daughter…”</blockquote>','<p class="k">Policy: vulnerability indicators must be confirmed by an accredited colleague before support needs are recorded.</p>'],
+    actions:'<button class="cpbtn pri" id="confirmVulnBtn">&#10003; Confirm – bereavement</button><button class="cpbtn">Not applicable</button>',src:'Customer email'});}},
+ {t:'Handle the second intent without forwarding',x:'The email also asks for a change of address, which the Customer Records team owns. Copilot proposes a linked case so nothing has to be forwarded.',target:'#childBtn',
+  n:'"One email, two intents. Today that usually means forwarding, or re-keying into another team\'s process. Here Dynamics keeps one customer context and sends the second piece of work to its owner as a linked case. The customer still sees one conversation."',
+  enter:async()=>{st.vuln=true;const v=$('#fVuln');v.innerHTML='<span class="pill hi">Confirmed – bereavement</span> <span style="font-size:12px;color:var(--muted)">by Priya Shah, 09:16</span>';$('#rowVuln').classList.add('flash');
+   tl(tic('#fde7e9','<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#c50f1f" stroke-width="1.4"><path d="M8 13.5S2 10 2 6a3 3 0 0 1 6-1 3 3 0 0 1 6 1c0 4-6 7.5-6 7.5z"/></svg>')+'<div><div class="h">Vulnerability confirmed: bereavement (human-validated)</div><div class="m">Priya Shah · 09:16 · Support need: allow extra time; offer a phone call</div></div>',true);
+   await cpCard({title:'Additional intent detected',thinking:'Checking ownership…',wait:900,blocks:['<p>This email also contains a <b>Change of address</b> request (confidence 0.97).</p>','<p><span class="k">Owning team</span><br>Customer Records · Policy Servicing queue</p>','<p class="k">Suggested: create a linked case with the address pre-filled, the original email attached and the vulnerability flag carried over.</p>'],
+    actions:'<button class="cpbtn pri" id="childBtn">+ Create linked case</button><button class="cpbtn">Handle here</button>',src:'Email, routing rules'});}},
+ {t:'Ask Copilot, grounded in approved knowledge',x:'The linked case is with its owning team. Priya now asks Copilot about Margaret\'s main request.',target:'#chipTfc',
+  n:'"Knowledge retrieval is one of the most valuable AI use cases. Answers come from L&G\'s approved knowledge articles, with citations, so the colleague can check the source."',
+  enter:async()=>{st.child=true;$('#related').innerHTML='<table class="grid"><thead><tr><th>Case</th><th>Intent</th><th>Queue</th><th>Status</th></tr></thead><tbody><tr><td><a class="lnk" data-open="case:CAS-118206">CAS-118206</a></td><td>Change of address</td><td>Customer Records</td><td><span class="pill bl">Routed</span></td></tr></tbody></table>';
+   $('#fIntent2').innerHTML='Change of address <span class="pill pp">97%</span> → linked case CAS-118206';$('#rowIntent2').classList.add('flash');
+   tl(tic('#ebf3fc','<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0f6cbd" stroke-width="1.4"><path d="M6 10l4-4M5 7L3.5 8.5a2.5 2.5 0 0 0 4 4L9 11M11 9l1.5-1.5a2.5 2.5 0 0 0-4-4L7 5"/></svg>')+'<div><div class="h">Linked case CAS-118206 created · Change of address → Customer Records</div><div class="m">Priya Shah · 09:17 · Original email and attachment shared</div></div>',true);
+   snack('&#10003; CAS-118206 routed to Customer Records. No forwarding needed.');
+   cpChips([{id:'chipTfc',label:'What are Margaret\'s options for taking tax-free cash?'},{label:'What bereavement support can we offer?'}]);}},
+ {t:'Grounded answer with citations',x:'Copilot combines the knowledge base with the case facts and cites its sources. Priya asks it to draft the reply.',target:'#draftBtn',
+  n:'Highlight the citations and the calculation taken from the statement. "Copilot assists, but Priya stays accountable. Nothing reaches the customer until she has reviewed it."',
+  enter:async()=>{cpChips([]);cpUser('What are Margaret\'s options for taking tax-free cash?');
+   await cpCard({title:'Answer',thinking:'Searching approved knowledge…',blocks:[
+    '<p>Margaret can usually take up to <b>25% of her pension as a tax-free lump sum</b>, subject to the lump sum allowance.<span class="cite">1</span> Based on her statement value of £148,320, that is about <b>£37,080</b>.</p>',
+    '<p>For the remaining 75%, the main options are:<span class="cite">1</span></p><ul><li>keep it invested and take a flexible, taxable income (drawdown)</li><li>buy a guaranteed income for life (annuity)</li><li>take further lump sums, which are taxable</li></ul>',
+    '<p>Customers should be signposted to <b>Pension Wise</b> guidance before accessing their pension.<span class="cite">2</span> For bereaved customers, offer a phone call and allow extra time.<span class="cite">3</span></p>',
+    '<div class="srcs"><a class="src lnk" data-open="ka:KA-2207">&#128196; [1] KA-2207 · Accessing your pension: tax-free cash and options</a><a class="src lnk" data-open="ka:KA-1984">&#128196; [2] KA-1984 · Retirement risk warnings and Pension Wise signposting</a><a class="src lnk" data-open="ka:KA-0611">&#128196; [3] KA-0611 · Supporting customers through bereavement</a></div>'],
+    actions:'<button class="cpbtn pri" id="draftBtn">&#9998; Draft email reply</button><button class="cpbtn">Copy</button>',src:'3 knowledge articles, case attachment'});}},
+ {t:'Copilot drafts the reply',x:'A reply on the original thread opens. Copilot writes a compassionate, compliant response covering both requests.',target:'#insertBtn',
+  n:'"The draft uses the case, the customer\'s own words, the linked case reference and approved knowledge. Tone matters here, given the bereavement."',
+  enter:async()=>{addTab({id:'mail',label:'RE: Change of address…',ic:'mail',x:1});setTabs('mail');showView('#vEmail');
+   await cpCard({title:'Email draft',thinking:'Drafting a reply…',wait:1500,blocks:['<div style="background:#faf7ff;border-radius:6px;padding:8px 10px;font-size:12.5px">'+REPLY+'</div>'],
+    actions:'<button class="cpbtn pri" id="insertBtn">&#8629; Insert into email</button><button class="cpbtn">Make it simpler</button><button class="cpbtn">Regenerate</button>',src:'Case, email, KA-2207, KA-1984, KA-0611'});}},
+ {t:'Review and send',x:'The draft goes into the email for Priya to review and edit before sending. The reply stays on the same thread and case.',target:'#sendEmailBtn',
+  n:'"The colleague is always the final check. The email is sent from the Retirement Specialists address and logged against CAS-118204, so the full correspondence history stays in one place."',
+  enter:async()=>{const b=$('#eBody');b.classList.remove('empty');b.innerHTML=REPLY;}},
+ {t:'The reply finds its case',x:'Two days later Margaret replies. Thread correlation adds her email to the existing case rather than creating a new one, and Copilot updates the summary.',target:'#resolveCmd',
+  n:'"Not every email needs a new case. Replies, attachments and follow-ups correlate to the existing case, which addresses one of the biggest causes of duplication and repeat contact today."',
+  enter:async()=>{st.sent=true;st.replied=true;dropTab('mail');setTabs('case');showView('#vCase');snack('&#10003; Email sent to Margaret Ellis');
+   tl(tic('#e8f3fc',mailSvg)+'<div><div class="h">Email sent · RE: Change of address and my pension</div><div class="m">To Margaret Ellis · Priya Shah · 09:24 · <span class="cpbadge">Drafted with Copilot</span></div></div>',true);
+   await sleep(1500);
+   tl(tic('#e8f3fc',mailSvg)+'<div style="flex:1"><div class="h">Email received · RE: Change of address and my pension</div><div class="m">From margaret.ellis@example.com · Wed 25/11/2026 10:02 · <span class="pill ok">Added to existing case (thread match)</span></div><div class="bd"><p>Thank you Priya, that is very kind and clear. Thursday afternoon would be best for a call. I have received the address letter too.</p></div></div>',true);
+   snack('&#8635; Customer reply correlated to CAS-118204. No duplicate case created.');
+   await cpCard({title:'What\'s new on this case',thinking:'Updating summary…',wait:900,blocks:['<ul><li>Margaret replied on 25/11 and would like a <b>call on Thursday afternoon</b>.</li><li>She confirms she has received the address confirmation (CAS-118206 resolved by Customer Records).</li><li>Sentiment: <span class="pill ok">Positive</span></li></ul>','<p class="k">Suggested: schedule the call, then resolve this case with a summary.</p>'],src:'Case timeline'});}},
+ {t:'Resolve with a Copilot summary',x:'Once the call is booked, Copilot writes the resolution summary from the whole case history.',target:'#insightsBtn',
+  n:'"No after-contact note-writing from scratch. The summary is consistent and auditable, and it is ready for the next colleague, quality checks or a complaint review." Then open the insights view.',
+  enter:async()=>{st.resolved=true;$('#hStatus').innerHTML='<span class="pill ok">Resolved</span>';$('#hSla').innerHTML='<span style="color:var(--ok)">Met</span>';
+   tl(tic('#dff6dd','<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#107c10" stroke-width="1.8"><path d="M3 8l3 3 7-7"/></svg>')+'<div><div class="h">Case resolved · Information provided, call booked</div><div class="m">Priya Shah · 25/11/2026 10:21 · <span class="cpbadge">Summary by Copilot</span></div></div>',true);
+   await cpCard({title:'Resolution summary',thinking:'Summarising the case…',blocks:[
+    '<p><span class="k">Need</span><br>Bereaved customer asked about tax-free cash from her Personal Pension and updated her address. She emailed the Life Protection mailbox.</p>',
+    '<p><span class="k">Actions</span></p><ul><li>Intent-routed to Priority Care in 1 min 52 s, with no forwarding.</li><li>Vulnerability (bereavement) confirmed by a colleague and support needs recorded.</li><li>Address change handled by linked case CAS-118206 (Customer Records).</li><li>Options explained and Pension Wise signposted (KA-2207, KA-1984). Call booked for Thursday 26/11, 14:00.</li></ul>',
+    '<p><span class="k">Outcome</span><br>First response on the same day; 1 case, 1 linked case, 0 transfers.</p>'],
+    actions:'<button class="cpbtn pri" id="insightsBtn">&#128202; See journey insights</button><button class="cpbtn">Copy to case notes</button>',src:'Case timeline'});}},
+ {t:'Measure by intent and journey',x:'Leaders see performance by customer intent and journey, independent of the mailbox that received the email. This view uses illustrative data.',target:null,
+  n:'"This is where the business case comes from: time from receipt to the right team, the share of email misdirected today, auto-route versus human validation, and reclassification rates that feed continuous improvement. The baselines and targets would be agreed in discovery, before the pilot." Close by proposing three pilot journeys: high volume/simple, misdirected/transfer-heavy, and controlled/complex.',
+  enter:async()=>{$('#sessCase').classList.remove('active');$('#sessHome').classList.add('active');$('#homeSub').textContent='Insights';
+   tabs=[{id:'ins',label:'Retail email insights',ic:'chart'}];setTabs('ins');showView('#vIns');
+   cpChips([{label:'Which intents have the most reclassification?'},{label:'Where are transfers still happening?'}]);}},
+ {t:'Demo complete',x:'Recap of the pattern, plus the key line to land.',target:null,
+  n:'"If the direction feels right, the next useful step is a focused discovery and working session, nominating three to five representative email journeys to observe and then prove."',
+  enter:async()=>{show('#finish');}}
+];
+
+let cur=0,busy=false,notesOn=false;
+/* ================= Narration (browser speech) ================= */
+const NARR=["Welcome. In this demo, we follow a single customer email through Legal and General's Retail service, and see how Dynamics 365 Customer Service and Copilot move it from mailbox-led handling to intent-led service.", "This is Priya Shah's workspace. Priya is a Retirement Specialist. Notice the Entered via column. Her cases arrived through many different email addresses, but they all reached her team because of what the customer needed, not which mailbox they happened to choose.", "A new email case has just been routed to Priya. Margaret Ellis emailed the Life Protection mailbox, but nobody there had to read it, decide it wasn't theirs, and forward it on. Email to Case created the case, Copilot identified the intent, and routing found the right specialist in under two minutes.", "Priya starts with a managed case, not an unmanaged mailbox item. Copilot has summarised both of Margaret's requests, her circumstances, and the key figures from her attached pension statement. Let's look at how this case got here.", "Routing diagnostics shows every stage: receive, create or correlate, understand, route, and assign. Copilot found two intents and a possible vulnerability, each with a confidence score. Anything below the agreed threshold goes to a colleague for validation, rather than being routed automatically.", "Copilot has flagged a possible bereavement. Because this is a sensitive journey, the policy keeps a person accountable. Priya reviews the evidence from the email and confirms it, and that decision is recorded on the case for audit.", "The email also asks for a change of address, which is owned by a different team. Instead of forwarding it, Copilot proposes a linked case, carrying over the original email, the attachment, and the vulnerability flag.", "The address change is now with Customer Records, with full context. Priya turns to Margaret's main question, and asks Copilot about her options for taking tax-free cash.", "Copilot answers from approved knowledge articles, cites its sources, and applies the figures from Margaret's statement. Priya now asks Copilot to draft a reply.", "Copilot drafts a compassionate response that covers both requests, explains her options, and signposts Pension Wise guidance. Priya reviews it before inserting it into the email.", "The draft is now in the email for a final check. Nothing reaches the customer until Priya sends it, and the reply stays on the original thread and case.", "Two days later, Margaret replies. Thread correlation adds her email to the existing case rather than creating a duplicate, and Copilot updates the summary with what's new.", "With the call booked, Copilot writes the resolution summary from the full case history. It's consistent, auditable, and ready for anyone who picks up Margaret's journey next.", "Finally, leaders can measure performance by customer intent and journey, independent of the mailbox the email arrived in. This view uses illustrative data. Real baselines and targets would be agreed during discovery.", "That's the pattern: email, case, intent, route, handle, resolve, and measure. The email address becomes an entry point, not the business process. Thank you for watching."];
+const synth=('speechSynthesis' in window)?window.speechSynthesis:null;
+let fromStart=false;let narrOn=!!synth,autoOn=false,voice=null,speakingQ=false,stepAt=0,autoTimer=null;
+const PREF=[/Ryan.*Natural/i,/Thomas.*Natural/i,/Oliver.*Natural/i,/Ryan/i,/George/i,/Google UK English Male/i,/Daniel/i,/Arthur/i,/Oliver/i,/Thomas/i];
+function gbVoices(){return synth?synth.getVoices().filter(v=>/en[-_]GB/i.test(v.lang)):[];}
+function pickVoice(){const vs=gbVoices();for(const r of PREF){const v=vs.find(x=>r.test(x.name));if(v)return v;}return vs[0]||(synth?synth.getVoices().find(v=>/^en/i.test(v.lang)):null)||null;}
+function fillVoices(){const sel=$('#voiceSel');if(!synth)return;const vs=gbVoices();if(!voice)voice=pickVoice();
+  const list=vs.length?vs:synth.getVoices().filter(v=>/^en/i.test(v.lang));
+  sel.innerHTML=list.map((v,i)=>'<option value="'+i+'"'+(voice&&v.name===voice.name?' selected':'')+'>'+esc(v.name.replace(/^Microsoft /,'').replace(/ - English \(United Kingdom\)/,'').replace(/Online \(Natural\)/,'(Natural)'))+'</option>').join('');sel._list=list;}
+if(synth){fillVoices();synth.addEventListener('voiceschanged',()=>{voice=null;fillVoices();});}
+function stopSpeech(){if(synth)synth.cancel();speakingQ=false;}
+function narrate(i){stopSpeech();stepAt=Date.now();if(!narrOn||!synth)return;if(!voice)voice=pickVoice();let t=NARR[i];if(!t)return;if(i===1&&fromStart){t=NARR[0]+' '+t;}fromStart=false;
+  const parts=t.match(/[^.!?:]+[.!?:]+|[^.!?:]+$/g)||[t];speakingQ=true;
+  parts.forEach((p,k)=>{const u=new SpeechSynthesisUtterance(p.trim());if(voice){u.voice=voice;u.lang=voice.lang;}else u.lang='en-GB';u.rate=1;u.pitch=1;
+    if(k===parts.length-1){u.onend=()=>{speakingQ=false;};u.onerror=()=>{speakingQ=false;};}synth.speak(u);});}
+setInterval(()=>{if(!autoOn||busy||cur>=S.length-1)return;if(narrOn&&synth&&(speakingQ||synth.speaking))return;
+  const minDwell=narrOn?1500:7000;if(Date.now()-stepAt<minDwell)return;
+  if(!autoTimer)autoTimer=setTimeout(()=>{autoTimer=null;if(autoOn&&!busy&&!(narrOn&&synth&&synth.speaking))next();},narrOn?900:0);},300);
+function toggleNarr(){if(!synth){snack('Spoken narration is not supported in this browser.');return;}narrOn=!narrOn;$('#gNarr').classList.toggle('on',narrOn);$('#narrChk').checked=narrOn;$('#voiceSel').classList.toggle('hidden',!narrOn);
+  if(narrOn){fillVoices();narrate(cur);}else stopSpeech();}
+function toggleAuto(){autoOn=!autoOn;$('#gAuto').classList.toggle('on',autoOn);$('#gAuto').innerHTML=autoOn?'&#10074;&#10074; Pause':'&#9654; Autoplay';if(autoOn){stepAt=Date.now();if(narrOn&&synth&&!synth.speaking)narrate(cur);}}
+function edgeHint(){if(!synth)return;const nat=gbVoices().some(v=>/Natural/i.test(v.name));$('#edgeHint').classList.toggle('hidden',nat);}
+if(synth){setTimeout(edgeHint,1500);synth.addEventListener('voiceschanged',edgeHint);}
+$('#narrChk').addEventListener('change',e=>{if(e.target.checked!==narrOn)toggleNarr();});
+$('#voiceSel').addEventListener('change',e=>{const l=e.target._list||[];voice=l[+e.target.value]||voice;narrate(cur);});
+
+function resetAll(){
+  st={vuln:false,child:false,sent:false,replied:false,resolved:false};
+  hide('#toast');hide('#finish');hide('#snack');show('#intro');
+  hide('#sessCase');hide('#sessLabel');$('#sessCase').classList.remove('active');$('#sessHome').classList.add('active');$('#homeSub').textContent='Agent dashboard';
+  $('#fVuln').innerHTML='<span class="pill md">Indicator: bereavement – awaiting validation</span>';
+  $('#fIntent2').innerHTML='Change of address <span class="pill pp">97%</span>';
+  ['#rowVuln','#rowIntent2'].forEach(s=>$(s).classList.remove('flash'));
+  $('#related').innerHTML='No related cases.';$('#hStatus').textContent='In progress';$('#hSla').textContent='Today 17:00';
+  $('#timeline').innerHTML='';
+  const b=$('#eBody');b.className='ebody empty';b.textContent="Compose your reply, or use Copilot to draft it from the case, the customer's email and approved knowledge.";
+  tabs=[{id:'dash',label:'Retail Service – Agent Dashboard',ic:'dash'}];setTabs('dash');showView('#vDash');cpClear();
+}
+function guide(i){const s=S[i];$('#gStep').textContent='Step '+(i+1)+' of '+S.length;$('#gProg').style.width=((i+1)/S.length*100)+'%';
+  $('#gTitle').textContent=s.t;$('#gText').textContent=s.x;$('#notesText').textContent=s.n||'';
+  $('#gBack').disabled=i===0;$('#gNext').disabled=i===S.length-1||busy;}
+function placeHotspot(){
+  const ring=$('#ring'),co=$('#callout'),s=S[cur];const el=s.target?$(s.target):null;
+  hide('#explore');
+  if(!busy&&cur>0&&s.target&&(!el||el.getClientRects().length===0)&&activeTab!==flowTab){const ft=tabs.find(t=>t.id===flowTab);$('#explore').innerHTML='&#128269; Exploring. Return to the <b>'+esc(ft?ft.label:'previous')+'</b> tab, or press <b>Next</b> to continue the guided demo.';show('#explore');}
+  if(busy||!el||el.getClientRects().length===0){hide(ring);hide(co);return;}
+  el.scrollIntoView({block:'nearest'});
+  const r=el.getBoundingClientRect(),p=5;
+  Object.assign(ring.style,{left:(r.left-p)+'px',top:(r.top-p)+'px',width:(r.width+p*2)+'px',height:(r.height+p*2)+'px'});show(ring);
+  if(cur===0){hide(co);return;}
+  $('#cTitle').textContent=s.t;$('#cText').textContent=s.x;show(co);
+  const cw=300,ch=co.offsetHeight,vw=innerWidth,vh=innerHeight;let x,y;
+  if(r.left>cw+30){x=r.left-cw-16;y=r.top+r.height/2-ch/2;} else {x=r.left;y=r.bottom+14;if(y+ch>vh-70)y=r.top-ch-14;}
+  x=Math.max(8,Math.min(x,vw-cw-8));y=Math.max(56,Math.min(y,vh-ch-72));co.style.left=x+'px';co.style.top=y+'px';
+}
+async function enterStep(i){cur=i;busy=true;guide(i);placeHotspot();narrate(i);const g=gen;
+  try{await S[i].enter();}catch(e){if(e!=='stale')console.error(e);return;}
+  if(g!==gen)return;busy=false;flowTab=activeTab;guide(i);setTimeout(placeHotspot,60);}
+async function jumpTo(k){gen++;busy=false;resetAll();instant=true;
+  for(let i=0;i<=k;i++){cur=i;try{await S[i].enter();}catch(e){}}
+  instant=false;cur=k;busy=false;flowTab=activeTab;guide(k);narrate(k);setTimeout(placeHotspot,60);}
+function next(){if(busy||cur>=S.length-1)return;if(activeTab!==flowTab&&tabs.find(t=>t.id===flowTab))activateTab(flowTab);enterStep(cur+1);}
+function back(){if(cur===0)return;jumpTo(cur-1);}
+function restart(){gen++;busy=false;resetAll();cur=0;guide(0);narrate(0);setTimeout(placeHotspot,60);}
+document.addEventListener('click',e=>{
+  const c=x=>e.target.closest(x);
+  const op=c('[data-open]');if(op){e.preventDefault();openRec(op.dataset.open);return;}
+  const cl=c('[data-close]');if(cl){closeTab(cl.dataset.close);return;}
+  const at=c('[data-tab]');if(at){activateTab(at.dataset.tab);return;}
+  const ct=c('[data-ctab]');if(ct){caseTab(ct.dataset.ctab);return;}
+  const rt=c('[data-rtab]');if(rt){const t=tabs.find(x=>x.id===activeTab);if(t){t.sub=+rt.dataset.rtab;renderRec(t.rec,t.sub);}return;}
+  if(c('#diagBack')&&S[cur].target!=='#diagBack'){dropTab('diag');setTabs('case');showView('#vCase');placeHotspot();return;}
+  if(c('#diagBtn')&&S[cur].target!=='#diagBtn'){addTab({id:'diag',label:'Routing diagnostics',ic:'diag',x:1});setTabs('diag');showView('#vDiag');placeHotspot();return;}
+  if(c('#narrChk')||c('.nchk'))return;
+  if(c('#startAutoBtn')){if(!autoOn)toggleAuto();fromStart=true;next();return;}
+  if(c('#startBtn'))fromStart=true;
+  if(c('#gNarr')){toggleNarr();return;}
+  if(c('#gAuto')){toggleAuto();return;}
+  if(c('#voiceSel'))return;
+  if(c('#gNext')){next();return;}
+  if(c('#gBack')||c('#finBack')){back();return;}
+  if(c('#gRestart')||c('#restartBtn')){restart();return;}
+  if(c('#gNotes')){notesOn=!notesOn;$('#notes').classList.toggle('hidden',!notesOn);$('#gNotes').classList.toggle('on',notesOn);return;}
+  const s=S[cur];if(busy||!s.target)return;
+  if(c(s.target))next();
+});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();if(e.key==='ArrowLeft')back();if(e.key==='t'||e.key==='T')$('#gNotes').click();if(e.key==='n'||e.key==='N')toggleNarr();if(e.key==='a'||e.key==='A')toggleAuto();});
+addEventListener('resize',placeHotspot);
+['#views','#cpbody'].forEach(s=>$(s).addEventListener('scroll',placeHotspot));
+resetAll();guide(0);setTimeout(placeHotspot,100);
+})();
+</script>
+</body>
+</html>
